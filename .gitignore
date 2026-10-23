@@ -16,3 +16,6 @@ kaggle.json
 # OS / editor
 .DS_Store
 .claude/settings.local.json
+
+# Local image data (Kermany CellData: OCT + chest_xray)
+CellData/
