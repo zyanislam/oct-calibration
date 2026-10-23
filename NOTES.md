@@ -7,7 +7,7 @@
 One line a day: what I tried, what broke, what I learned.
 
 - **2026-10-22:** Created the `oct-calibration` repo, Colab notebook (T4) and Kaggle token (Step 1). Downloaded Kermany OCT2017 (Step 2).
-- **2026-10-23:** Added the build guide + roadmap to `docs/`, a `.gitignore` (runs/, CellData/, kaggle.json) and this file. Counted images per class (train is very imbalanced: NORMAL 51k vs DRUSEN 8.6k; test is 250 each). Labelling practice: Round 1 3/8 → Round 2 6/8. Learned to check the RPE line first; CNV was my weak class, now drusen vs CNV is. Round 3 (drusen/CNV heavy) in progress.
+- **2026-10-23:** Added the build guide + roadmap to `docs/`, a `.gitignore` (runs/, CellData/, kaggle.json) and this file. Counted images per class (train is very imbalanced: NORMAL 51k vs DRUSEN 8.6k; test is 250 each). Labelling practice: Round 1 3/8 → Round 2 6/8 → Round 3 8/8. Learned to check the RPE line first; CNV was my weak class, now drusen vs CNV is. Round 3 was drusen/CNV heavy and I got all 8: "smooth & sharp vs fuzzy & broken" works.
 
 ## Data (Step 2)
 
@@ -96,13 +96,13 @@ From `runs/quiz/round3/quiz.png`. Weighted toward drusen vs CNV (not 2 per class
 
 | Scan | My guess | Why (what I saw) | Actual | Right? |
 |-----:|----------|------------------|--------|:------:|
-| 1 | | | | |
-| 2 | | | | |
-| 3 | | | | |
-| 4 | | | | |
-| 5 | | | | |
-| 6 | | | | |
-| 7 | | | | |
-| 8 | | | | |
+| 1 | DRUSEN | | DRUSEN | ✓ |
+| 2 | DRUSEN | | DRUSEN | ✓ |
+| 3 | DME | | DME | ✓ |
+| 4 | CNV | | CNV | ✓ |
+| 5 | CNV | | CNV | ✓ |
+| 6 | NORMAL | | NORMAL | ✓ |
+| 7 | CNV | | CNV | ✓ |
+| 8 | DRUSEN | | DRUSEN | ✓ |
 
-Score: /8
+Score: 8/8 (3/8 → 6/8 → 8/8). Drusen vs CNV sorted on the drusen/CNV-heavy round.
