@@ -8,10 +8,13 @@ One line a day: what I tried, what broke, what I learned.
 
 - **2026-10-22:** Created the `oct-calibration` repo, Colab notebook (T4) and Kaggle token (Step 1). Downloaded Kermany OCT2017 (Step 2).
 - **2026-10-23:** Added the build guide + roadmap to `docs/`, a `.gitignore` (runs/, CellData/, kaggle.json) and this file. Counted images per class (train is very imbalanced: NORMAL 51k vs DRUSEN 8.6k; test is 250 each). Labelling practice: Round 1 3/8 → Round 2 6/8 → Round 3 8/8. Learned to check the RPE line first; CNV was my weak class, now drusen vs CNV is. Round 3 was drusen/CNV heavy and I got all 8: "smooth & sharp vs fuzzy & broken" works.
+- **2026-10-24:** Moved Step 2 to a Kaggle notebook (`zyanislam/oct-calibration`). Built an index table (path, split, class, patient, width, height): 0 malformed names, 0 class mismatches, 0 unreadable files. Found the Kaggle `kermany2018` copy is the older v2 (84,484 images, stored twice), so I uploaded my local Mendeley v3 copy as the private dataset `zyanislam/kermany-retinal-oct-v3`. Next: patients per split, train–test overlap, sample grids.
 
 ## Data (Step 2)
 
 Kermany OCT2017, local copy in `CellData/OCT/` (gitignored).
+
+**Dataset version: Mendeley v3** ([doi:10.17632/rscbjbr9sj.3](https://data.mendeley.com/datasets/rscbjbr9sj/3)), the release used in Kermany et al. 2018 (*Cell*). On Kaggle I use my private copy `zyanislam/kermany-retinal-oct-v3` ("Kermany Retinal OCT (Mendeley v3)"), not `paultimothymooney/kermany2018`. That one is the older v2 (Mar 2018): 83,484 train with only 26,315 NORMAL, and 968 test (242 per class). It also contains the whole dataset twice (`OCT2017 /` and `oct2017/OCT2017 /`, with a trailing space in the folder name).
 
 | Class  | Train  | Test |
 |--------|-------:|-----:|
