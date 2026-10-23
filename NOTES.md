@@ -20,14 +20,18 @@ Kermany OCT2017, local copy in `CellData/OCT/` (gitignored).
 | DRUSEN |  8,616 | 250  |
 | NORMAL | 51,140 | 250  |
 
-Largest / smallest train class ratio: <!-- fill in -->
+Largest / smallest train class ratio: 
+
+51,140 : 8,616 = 5.935 : 1
+
+- For 1 sample of DRUSEN, there are almost 6 samples from the NORMAL class.
 
 What each class looks like:
 
-- CNV:
-- DME:
-- DRUSEN:
-- NORMAL:
+- CNV: RPE lifted into one big irregular hump with a dark shadow below.
+- DME: It has a few dark fluid pockets inside the swollen retina.
+- DRUSEN: It contains a row of small, regular bumps on the RPE. The retina above is intact and the fovea is still visible.
+- NORMAL: no dark pockets or bumps present insight. Smooth RPE with a clean dip in the center.
 
 ## Labelling practice
 
