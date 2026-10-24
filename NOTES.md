@@ -7,7 +7,7 @@
 One entry a day: what I tried, what broke, what I learned. Newest first.
 
 <details open>
-<summary><b>2026-10-24</b></summary>
+<summary><b>Sat 24 Oct 2026</b></summary>
 
 - Moved Step 2 to a Kaggle notebook (`zyanislam/oct-calibration`).
 - Built an index table (path, split, class, patient, width, height): 0 malformed names, 0 class mismatches, 0 unreadable files.
@@ -26,7 +26,7 @@ One entry a day: what I tried, what broke, what I learned. Newest first.
 </details>
 
 <details>
-<summary><b>2026-10-23</b></summary>
+<summary><b>Fri 23 Oct 2026</b></summary>
 
 - Added the build guide + roadmap to `docs/`, a `.gitignore` (runs/, CellData/, kaggle.json) and this file.
 - Counted images per class (train is very imbalanced: NORMAL 51k vs DRUSEN 8.6k; test is 250 each).
@@ -37,7 +37,7 @@ One entry a day: what I tried, what broke, what I learned. Newest first.
 </details>
 
 <details>
-<summary><b>2026-10-22</b></summary>
+<summary><b>Thu 22 Oct 2026</b></summary>
 
 - Created the `oct-calibration` repo, Colab notebook (T4) and Kaggle token (Step 1).
 - Downloaded Kermany OCT2017 (Step 2).
