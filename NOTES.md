@@ -127,7 +127,7 @@ Only 44 of the 473 shuffled-val patients are also in the fixed val set. Fix: `sh
 **Lesson:** the seed fixes randomness *inside* a library version, not *across* versions. Save the split as a file and have every step read it, instead of recomputing it.
 
 **Why splitting by image would inflate accuracy:**
-If we split by image, the same patient's scans can appear in both the training and validation, as the model has seen the answers during training, it will just read the labels it already knows as they are nearly identical and get it right even though it never learned what each class looks like. Thus the score will look better than it really is but will struggle when new scans of new patients will be given. If the patient repeats, the near identical scans will be an easy find for the model as it already knows the eye, retina and the day the train was done. Inflated Accuracy means the model will do worse on new patients.
+If we split by image, the same patient's scans can appear in both the training and validation, as the model has seen the answers during training, it will recognise the eye it already knows, as the scans are nearly identical, recall that eye's label and get it right even though it never learned what each class looks like. Thus the score will look better than it really is but will struggle when new scans of new patients will be given. If the patient repeats, the near identical scans will be an easy find for the model as it already knows the eye, retina and the day the scans were taken. Inflated Accuracy means the model will do worse on new patients.
 
 </details>
 
