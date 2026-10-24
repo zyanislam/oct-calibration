@@ -12,8 +12,8 @@ Things to come back to that aren't part of the current step.
 
 ## Notebook tidy-up
 
-- [ ] Clone the repo to `/tmp/oct-calibration` in the first cell so Kaggle's output folder holds only results
-- [ ] Delete cell 7 (duplicates the folder listing in cell 2)
+- [x] Clone the repo to `/tmp/oct-calibration` in the first cell so Kaggle's output folder holds only results
+- [x] Delete cell 7 (duplicates the folder listing in cell 2)
 - [ ] Make the Kaggle notebook public when the project is ready to share (Step 11)
 
 ## Optional experiments
