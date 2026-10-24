@@ -160,6 +160,8 @@ A saved split CSV that every later step reads, so all your results use exactly t
 
 Your asserts pass, the CSV is saved, and you can explain in one sentence why splitting by image would inflate accuracy.
 
+> ✅ Done 2026-10-24: asserts pass, split saved as `splits/oct_split_fold0.csv`, explanation written in `NOTES.md` (Step 3 · Patient split).
+
 
 ### Watch for
 

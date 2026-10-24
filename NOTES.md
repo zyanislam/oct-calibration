@@ -21,6 +21,7 @@ One entry a day: what I tried, what broke, what I learned. Newest first.
 - Fixed with `shuffle=False` and a fold number: identical split on 3 versions.
 - Reran on Kaggle with `fold=0`: same 97,479 / 10,830 / 1,000 split, identical row by row to my Mac.
 - Saved `splits/oct_split_fold0.csv` and `notebooks/02_patient_split.ipynb`.
+- Wrote down why splitting by image would inflate accuracy (Step 3 "done when").
 
 </details>
 
@@ -125,7 +126,8 @@ Only 44 of the 473 shuffled-val patients are also in the fixed val set. Fix: `sh
 
 **Lesson:** the seed fixes randomness *inside* a library version, not *across* versions. Save the split as a file and have every step read it, instead of recomputing it.
 
-Why splitting by image would inflate accuracy: <!-- write this one yourself (guide's "done when") -->
+**Why splitting by image would inflate accuracy:**
+If we split by image, the same patient's scans can appear in both the training and validation, as the model has seen the answers during training, it will just read the labels it already knows as they are nearly identical and get it right even though it never learned what each class looks like. Thus the score will look better than it really is but will struggle when new scans of new patients will be given. If the patient repeats, the near identical scans will be an easy find for the model as it already knows the eye, retina and the day the train was done. Inflated Accuracy means the model will do worse on new patients.
 
 </details>
 
