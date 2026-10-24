@@ -1,0 +1,5 @@
+split_method,split,scans,patients,share_CNV,share_DME,share_DRUSEN,share_NORMAL
+"shuffled (Kaggle scikit-learn, seed 42)",train,96011,4312,0.3331,0.108,0.0813,0.4777
+"shuffled (Kaggle scikit-learn, seed 42)",val,12298,473,0.4251,0.0799,0.0656,0.4293
+"fixed (shuffle=False, fold 0)",train,97479,4303,0.3435,0.1048,0.0795,0.4722
+"fixed (shuffle=False, fold 0)",val,10830,482,0.3436,0.1048,0.0796,0.472

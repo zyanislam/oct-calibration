@@ -16,6 +16,10 @@ Things to come back to that aren't part of the current step.
 - [ ] Delete cell 7 (duplicates the folder listing in cell 2)
 - [ ] Make the Kaggle notebook public when the project is ready to share (Step 11)
 
+## Optional experiments
+
+- [ ] Train the Step 5 baseline on the shuffled (unbalanced) split too, and compare val macro-F1 and the Step 7 temperature T with the fixed split. Shows whether the imbalance changes conclusions. The old split is kept at `runs/step3/oct_split_shuffled_sklearn-kaggle.csv` (not committed).
+
 ## Housekeeping
 
 - [ ] Optional: remove the token line from `~/.zsh_history`

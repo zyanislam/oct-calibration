@@ -8,7 +8,7 @@ One line a day: what I tried, what broke, what I learned.
 
 - **2026-10-22:** Created the `oct-calibration` repo, Colab notebook (T4) and Kaggle token (Step 1). Downloaded Kermany OCT2017 (Step 2).
 - **2026-10-23:** Added the build guide + roadmap to `docs/`, a `.gitignore` (runs/, CellData/, kaggle.json) and this file. Counted images per class (train is very imbalanced: NORMAL 51k vs DRUSEN 8.6k; test is 250 each). Labelling practice: Round 1 3/8 → Round 2 6/8 → Round 3 8/8. Learned to check the RPE line first; CNV was my weak class, now drusen vs CNV is. Round 3 was drusen/CNV heavy and I got all 8: "smooth & sharp vs fuzzy & broken" works.
-- **2026-10-24:** Moved Step 2 to a Kaggle notebook (`zyanislam/oct-calibration`). Built an index table (path, split, class, patient, width, height): 0 malformed names, 0 class mismatches, 0 unreadable files. Found the Kaggle `kermany2018` copy is the older v2 (84,484 images, stored twice), so I uploaded my local Mendeley v3 copy as the private dataset `zyanislam/kermany-retinal-oct-v3`. Reran the index on v3: 109,309 images (108,309 train, 1,000 test), all checks 0. Image sizes vary (8 different sizes, see `results/step2_image_sizes.csv`). Patients: 4,785 train, 635 test, 0 in both; 787 span more than one class. Saved a 20-scan grid per class.
+- **2026-10-24:** Moved Step 2 to a Kaggle notebook (`zyanislam/oct-calibration`). Built an index table (path, split, class, patient, width, height): 0 malformed names, 0 class mismatches, 0 unreadable files. Found the Kaggle `kermany2018` copy is the older v2 (84,484 images, stored twice), so I uploaded my local Mendeley v3 copy as the private dataset `zyanislam/kermany-retinal-oct-v3`. Reran the index on v3: 109,309 images (108,309 train, 1,000 test), all checks 0. Image sizes vary (8 different sizes, see `results/step2_image_sizes.csv`). Patients: 4,785 train, 635 test, 0 in both; 787 span more than one class. Saved a 20-scan grid per class. Step 3: wrote `src/data.py`; the patient split on Kaggle didn't match my Mac. Traced it to scikit-learn versions changing `StratifiedGroupKFold`'s shuffle (Kaggle val was 42.5% CNV vs 34.4% in train). Fixed with `shuffle=False` and a fold number: identical split on 3 versions.
 
 ## Data (Step 2)
 
@@ -57,6 +57,36 @@ What each class looks like:
 - DME: It has a few dark fluid pockets inside the swollen retina.
 - DRUSEN: It contains a row of small, regular bumps on the RPE. The retina above is intact and the fovea is still visible.
 - NORMAL: no dark pockets or bumps present insight. Smooth RPE with a clean dip in the center.
+
+## Patient split (Step 3)
+
+Code: `src/data.py` (`build_index`, `patient_split`, `check_no_leak`). Split saved as `splits/oct_split_fold0.csv` (`path, label, patient, split`); every later step reads this file.
+
+- Official train → train/val by patient with `StratifiedGroupKFold` (10 groups, group 0 = val). The official test set is unchanged.
+- Train patients also in test: 0 removed. The `check_no_leak` assert passes.
+
+| Split | Scans | Patients | CNV | DME | DRUSEN | NORMAL |
+|-------|------:|---------:|----:|----:|-------:|-------:|
+| train | 97,479 | 4,303 | 34.4% | 10.5% | 8.0% | 47.2% |
+| val   | 10,830 |   482 | 34.4% | 10.5% | 8.0% | 47.2% |
+| test  |  1,000 |   635 | 25% | 25% | 25% | 25% |
+
+### Finding: a fixed seed was not enough for a reproducible split
+
+My first split used `StratifiedGroupKFold(shuffle=True, random_state=42)`. On Kaggle it produced a different validation set from the same code on my Mac, because Kaggle has an older scikit-learn (1.6/1.7 reproduce it exactly; 1.9 differs). The Kaggle split was also badly balanced:
+
+| Val share | Train | Shuffled val (Kaggle) | Fixed val |
+|-----------|------:|----------------------:|----------:|
+| CNV    | 34.4% | **42.5%** | 34.4% |
+| DME    | 10.5% |  8.0% | 10.5% |
+| DRUSEN |  8.0% |  **6.6%** |  8.0% |
+| NORMAL | 47.2% | 42.9% | 47.2% |
+
+Only 44 of the 473 shuffled-val patients are also in the fixed val set. Fix: `shuffle=False`, choosing the val group with `fold=0` instead of a seed. Tested on scikit-learn 1.6.1, 1.7.2 and 1.9.1: identical split. Full numbers: `results/step3_split_comparison.csv`.
+
+**Lesson:** the seed fixes randomness *inside* a library version, not *across* versions. Save the split as a file and have every step read it, instead of recomputing it.
+
+Why splitting by image would inflate accuracy: <!-- write this one yourself (guide's "done when") -->
 
 ## Labelling practice
 
