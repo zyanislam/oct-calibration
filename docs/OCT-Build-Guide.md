@@ -129,13 +129,13 @@ Scans from the same patient look alike. If one patient's scans land in both trai
 
 ### What you'll do
 
-- [ ] **Write `src/data.py`** with a function that lists every image as `(path, label, patient_id)`.
+- [x] **Write `src/data.py`** with a function that lists every image as `(path, label, patient_id)`.
 
-- [ ] **Split the official training images into train and validation by patient**, about 90/10, with a fixed random seed. Every scan from one patient goes to the same side.
+- [x] **Split the official training images into train and validation by patient**, about 90/10, with a fixed random seed. Every scan from one patient goes to the same side.
 
-- [ ] **Remove from training any patient who also appears in the official test set**, and record how many you removed.
+- [x] **Remove from training any patient who also appears in the official test set**, and record how many you removed.
 
-- [ ] **Add `assert` checks** that no patient ID appears in two splits, and save the final split as a CSV (`path, label, patient, split`).
+- [x] **Add `assert` checks** that no patient ID appears in two splits, and save the final split as a CSV (`path, label, patient, split`).
 
 
 ### Learn first

@@ -6,7 +6,7 @@ This project trains a classifier for retinal OCT scans (CNV, DME, drusen, normal
 
 It's the imaging half of a broader question I study: how to show model uncertainty to the people who rely on it. The other half is confidence cues on ASR captions for Deaf and hard-of-hearing viewers.
 
-> **Status: work in progress (Step 2 of 11 done).** There's no model or results yet. This README will open with the headline result once Step 8 (selective prediction) is done.
+> **Status: work in progress (Step 3 of 11 done).** There's no model or results yet. This README will open with the headline result once Step 8 (selective prediction) is done.
 
 ## Plan
 
@@ -16,8 +16,8 @@ The project follows the 11 steps in [`docs/OCT-Build-Guide.md`](docs/OCT-Build-G
 |---:|---|:---:|
 | 1 | Workspace: repo, Kaggle notebook, dataset access | ✅ |
 | 2 | Get the data and explore it | ✅ |
-| 3 | Split by patient (no leakage) | ⏳ |
-| 4 | Data pipeline and augmentation | |
+| 3 | Split by patient (no leakage) | ✅ |
+| 4 | Data pipeline and augmentation | ⏳ |
 | 5 | Baseline: ImageNet-pretrained ResNet-18 | |
 | 6 | Evaluation with bootstrap confidence intervals | |
 | 7 | Calibration: ECE, reliability diagrams, temperature scaling | |
@@ -50,6 +50,18 @@ What exploring it showed (details in [`NOTES.md`](NOTES.md), tables in [`results
 | ![CNV sample grid](figures/step2/grid_CNV.png) | ![DME sample grid](figures/step2/grid_DME.png) |
 | **DRUSEN** | **NORMAL** |
 | ![DRUSEN sample grid](figures/step2/grid_DRUSEN.png) | ![NORMAL sample grid](figures/step2/grid_NORMAL.png) |
+
+## Patient split
+
+Saved as [`splits/oct_split_fold0.csv`](splits/oct_split_fold0.csv) (`path, label, patient, split`) by `src.data.patient_split`. About 10% of training **patients** go to validation, with class shares kept equal (`StratifiedGroupKFold`, no shuffling). No patient appears in two splits.
+
+| Split | Scans | Patients |
+|---|---:|---:|
+| train | 97,479 | 4,303 |
+| val | 10,830 | 482 |
+| test | 1,000 | 635 |
+
+A fixed random seed was **not** enough to reproduce the split: with shuffling on, Kaggle's older scikit-learn gave a different and badly balanced validation set (42.5% CNV vs 34.4% in train). See [`results/step3_split_comparison.csv`](results/step3_split_comparison.csv) and [`NOTES.md`](NOTES.md).
 
 ## Repository layout
 

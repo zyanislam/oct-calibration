@@ -1,0 +1,13 @@
+split,label,scans,patients
+test,CNV,250,178
+test,DME,250,167
+test,DRUSEN,250,169
+test,NORMAL,250,171
+train,CNV,33484,712
+train,DME,10213,639
+train,DRUSEN,7754,644
+train,NORMAL,46028,3093
+val,CNV,3721,79
+val,DME,1135,70
+val,DRUSEN,862,69
+val,NORMAL,5112,341
