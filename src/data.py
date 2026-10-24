@@ -98,12 +98,17 @@ def check_no_leak(df: pd.DataFrame) -> None:
     )
 
 
-def patient_split(df: pd.DataFrame, val_fraction: float = 0.1, seed: int = 42):
+def patient_split(df: pd.DataFrame, val_fraction: float = 0.1, fold: int = 0):
     """Split the official training images into train and val by patient.
 
     Every scan of a patient lands on the same side. Classes are kept in similar
     proportions (StratifiedGroupKFold). Train patients who also appear in the
-    official test set are removed first. Returns (df, removed_patients).
+    official test set are removed first. `fold` picks which of the
+    round(1 / val_fraction) patient groups becomes val. Returns (df, removed_patients).
+
+    No shuffling: StratifiedGroupKFold's shuffle changed between scikit-learn
+    versions (1.7 and 1.9 give different, and differently balanced, splits for
+    the same seed). Without it the split is deterministic on any version.
     """
     assert set(df["split"]) <= {"train", "test"}, f"unexpected splits: {set(df['split'])}"
     df = df.copy()
@@ -117,8 +122,10 @@ def patient_split(df: pd.DataFrame, val_fraction: float = 0.1, seed: int = 42):
     # 2. Hold out about val_fraction of the training patients as validation.
     train = df[df["split"] == "train"]
     n_splits = round(1 / val_fraction)  # 0.1 -> 10 folds, use one as val
-    sgkf = StratifiedGroupKFold(n_splits=n_splits, shuffle=True, random_state=seed)
-    _, val_rows = next(sgkf.split(train, train["class"], groups=train["patient"]))
+    assert 0 <= fold < n_splits, f"fold must be in 0..{n_splits - 1}"
+    sgkf = StratifiedGroupKFold(n_splits=n_splits)
+    folds = list(sgkf.split(train, train["class"], groups=train["patient"]))
+    _, val_rows = folds[fold]
     df.loc[train.index[val_rows], "split"] = "val"
 
     check_no_leak(df)
