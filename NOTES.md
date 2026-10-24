@@ -4,13 +4,49 @@
 
 ## Daily log
 
-One line a day: what I tried, what broke, what I learned.
+One entry a day: what I tried, what broke, what I learned. Newest first.
 
-- **2026-10-22:** Created the `oct-calibration` repo, Colab notebook (T4) and Kaggle token (Step 1). Downloaded Kermany OCT2017 (Step 2).
-- **2026-10-23:** Added the build guide + roadmap to `docs/`, a `.gitignore` (runs/, CellData/, kaggle.json) and this file. Counted images per class (train is very imbalanced: NORMAL 51k vs DRUSEN 8.6k; test is 250 each). Labelling practice: Round 1 3/8 → Round 2 6/8 → Round 3 8/8. Learned to check the RPE line first; CNV was my weak class, now drusen vs CNV is. Round 3 was drusen/CNV heavy and I got all 8: "smooth & sharp vs fuzzy & broken" works.
-- **2026-10-24:** Moved Step 2 to a Kaggle notebook (`zyanislam/oct-calibration`). Built an index table (path, split, class, patient, width, height): 0 malformed names, 0 class mismatches, 0 unreadable files. Found the Kaggle `kermany2018` copy is the older v2 (84,484 images, stored twice), so I uploaded my local Mendeley v3 copy as the private dataset `zyanislam/kermany-retinal-oct-v3`. Reran the index on v3: 109,309 images (108,309 train, 1,000 test), all checks 0. Image sizes vary (8 different sizes, see `results/step2_image_sizes.csv`). Patients: 4,785 train, 635 test, 0 in both; 787 span more than one class. Saved a 20-scan grid per class. Step 3: wrote `src/data.py`; the patient split on Kaggle didn't match my Mac. Traced it to scikit-learn versions changing `StratifiedGroupKFold`'s shuffle (Kaggle val was 42.5% CNV vs 34.4% in train). Fixed with `shuffle=False` and a fold number: identical split on 3 versions. Reran on Kaggle with `fold=0`: same 97,479 / 10,830 / 1,000 split, identical row by row to my Mac. Saved `splits/oct_split_fold0.csv` and `notebooks/02_patient_split.ipynb`.
+<details open>
+<summary><b>2026-10-24</b></summary>
 
-## Data (Step 2)
+- Moved Step 2 to a Kaggle notebook (`zyanislam/oct-calibration`).
+- Built an index table (path, split, class, patient, width, height): 0 malformed names, 0 class mismatches, 0 unreadable files.
+- Found the Kaggle `kermany2018` copy is the older v2 (84,484 images, stored twice), so I uploaded my local Mendeley v3 copy as the private dataset `zyanislam/kermany-retinal-oct-v3`.
+- Reran the index on v3: 109,309 images (108,309 train, 1,000 test), all checks 0.
+- Image sizes vary (8 different sizes, see `results/step2_image_sizes.csv`).
+- Patients: 4,785 train, 635 test, 0 in both; 787 span more than one class.
+- Saved a 20-scan grid per class.
+- Step 3: wrote `src/data.py`; the patient split on Kaggle didn't match my Mac.
+- Traced it to scikit-learn versions changing `StratifiedGroupKFold`'s shuffle (Kaggle val was 42.5% CNV vs 34.4% in train).
+- Fixed with `shuffle=False` and a fold number: identical split on 3 versions.
+- Reran on Kaggle with `fold=0`: same 97,479 / 10,830 / 1,000 split, identical row by row to my Mac.
+- Saved `splits/oct_split_fold0.csv` and `notebooks/02_patient_split.ipynb`.
+
+</details>
+
+<details>
+<summary><b>2026-10-23</b></summary>
+
+- Added the build guide + roadmap to `docs/`, a `.gitignore` (runs/, CellData/, kaggle.json) and this file.
+- Counted images per class (train is very imbalanced: NORMAL 51k vs DRUSEN 8.6k; test is 250 each).
+- Labelling practice: Round 1 3/8 → Round 2 6/8 → Round 3 8/8.
+- Learned to check the RPE line first; CNV was my weak class, now drusen vs CNV is.
+- Round 3 was drusen/CNV heavy and I got all 8: "smooth & sharp vs fuzzy & broken" works.
+
+</details>
+
+<details>
+<summary><b>2026-10-22</b></summary>
+
+- Created the `oct-calibration` repo, Colab notebook (T4) and Kaggle token (Step 1).
+- Downloaded Kermany OCT2017 (Step 2).
+
+</details>
+
+## Steps
+
+<details>
+<summary><strong>Step 2 · Data</strong></summary>
 
 Kermany OCT2017, local copy in `CellData/OCT/` (gitignored).
 
@@ -58,7 +94,10 @@ What each class looks like:
 - DRUSEN: It contains a row of small, regular bumps on the RPE. The retina above is intact and the fovea is still visible.
 - NORMAL: no dark pockets or bumps present insight. Smooth RPE with a clean dip in the center.
 
-## Patient split (Step 3)
+</details>
+
+<details>
+<summary><strong>Step 3 · Patient split</strong></summary>
 
 Code: `src/data.py` (`build_index`, `patient_split`, `check_no_leak`). Split saved as `splits/oct_split_fold0.csv` (`path, label, patient, split`); every later step reads this file.
 
@@ -88,7 +127,10 @@ Only 44 of the 473 shuffled-val patients are also in the fixed val set. Fix: `sh
 
 Why splitting by image would inflate accuracy: <!-- write this one yourself (guide's "done when") -->
 
-## Labelling practice
+</details>
+
+<details>
+<summary><strong>Labelling practice</strong></summary>
 
 Can I tell the classes apart by eye? 2 random scans per class, shuffled, from `runs/quiz/quiz.png`.
 Write my guess before checking `runs/quiz/answers.json`.
@@ -165,3 +207,5 @@ From `runs/quiz/round3/quiz.png`. Weighted toward drusen vs CNV (not 2 per class
 | 8 | DRUSEN | | DRUSEN | ✓ |
 
 Score: 8/8 (3/8 → 6/8 → 8/8). Drusen vs CNV sorted on the drusen/CNV-heavy round.
+
+</details>
