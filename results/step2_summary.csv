@@ -1,0 +1,10 @@
+metric,value
+images_total,109309
+train_patients,4785
+test_patients,635
+patients_in_train_and_test,0
+patients_in_more_than_one_class,787
+train_scans_per_patient_min,1
+train_scans_per_patient_median,10
+train_scans_per_patient_max,813
+train_largest_to_smallest_class_ratio,5.935

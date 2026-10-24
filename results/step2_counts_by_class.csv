@@ -1,0 +1,9 @@
+split,class,scans,patients
+test,CNV,250,178
+test,DME,250,167
+test,DRUSEN,250,169
+test,NORMAL,250,171
+train,CNV,37205,791
+train,DME,11348,709
+train,DRUSEN,8616,713
+train,NORMAL,51140,3434

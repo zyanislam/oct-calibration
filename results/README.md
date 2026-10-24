@@ -1,0 +1,11 @@
+# Results
+
+Small, plain CSV tables of every result, so numbers can be checked or reused without rerunning anything. Files are named by guide step.
+
+| File | What it holds |
+|---|---|
+| `step2_counts_by_class.csv` | Scans and unique patients per split and class |
+| `step2_summary.csv` | Headline Step 2 numbers: patient counts, train–test overlap, scans per patient, class ratio |
+| `step2_image_sizes.csv` | Number of scans at each image size (width × height) |
+
+All Step 2 numbers come from `src.data.build_index` on Kermany OCT2017, Mendeley v3 (109,309 images).

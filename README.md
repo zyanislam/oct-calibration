@@ -38,12 +38,12 @@ The project follows the 11 steps in [`docs/OCT-Build-Guide.md`](docs/OCT-Build-G
 | NORMAL | 51,140 | 3,434 | 250 | 171 |
 | **Total** | **108,309** | **4,785** | **1,000** | **635** |
 
-What exploring it showed (details in [`NOTES.md`](NOTES.md)):
+What exploring it showed (details in [`NOTES.md`](NOTES.md), tables in [`results/`](results/)):
 
 - **Imbalanced training set.** NORMAL has about 5.9× as many scans as DRUSEN, and the test set is balanced, so macro-F1 matters more than accuracy.
 - **No patient appears in both train and test**, but 787 patients have scans in more than one class. Splits must group by patient ID only.
 - **Patients contribute very unevenly:** 1 to 813 train scans each, with a median of 10.
-- **Image widths vary** (512, 768, 1024 and 1536 px; all 496 px tall), which matters when resizing.
+- **Image sizes vary:** 8 sizes, mostly 512×496, 768×496, 1536×496 and 512×512, which matters when resizing.
 
 | CNV | DME |
 |---|---|
@@ -56,6 +56,8 @@ What exploring it showed (details in [`NOTES.md`](NOTES.md)):
 ```
 docs/       build guide and research roadmap
 figures/    figures used in NOTES.md and this README
+results/    small CSV tables of every result (counts, metrics), one file per step
+splits/     the saved patient split that every step from 3 on reads
 notebooks/  thin notebooks that clone the repo and call src/
 src/        project code (the real code lives here, not in notebooks)
 runs/       checkpoints, logits and run outputs (gitignored)

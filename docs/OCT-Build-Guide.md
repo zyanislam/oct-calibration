@@ -31,7 +31,7 @@ Everything later depends on a setup that survives crashes and that someone else 
 
 - [x] **Create a Kaggle account and API token** (Settings → Create New Token). This downloads `kaggle.json`, which lets Colab fetch the dataset with one command.
 
-- [ ] **Decide your code layout:** real code lives in `.py` files under `src/`; the notebook only clones the repo and calls those files. Write this rule at the top of `NOTES.md`.
+- [x] **Decide your code layout:** real code lives in `.py` files under `src/`; the notebook only clones the repo and calls those files. Write this rule at the top of `NOTES.md`.
 
 
 ### Learn first
@@ -77,15 +77,15 @@ You can't judge a model on data you haven't looked at. Exploring first tells you
 
 - [x] **Download Kermany OCT2017** ([Mendeley](https://data.mendeley.com/datasets/rscbjbr9sj/3), or Kaggle `paultimothymooney/kermany2018`, about 5 GB) into Drive and unzip it.
 
-- [ ] **Count images per class in train and test.** Record the counts and the ratio between the largest and smallest class in `NOTES.md`.
+- [x] **Count images per class in train and test.** Record the counts and the ratio between the largest and smallest class in `NOTES.md`.
 
-- [ ] **Look at 20 images per class** in a grid. Write one line per class on what you see: fluid pockets, bumps under the retina, or a smooth layered retina.
+- [x] **Look at 20 images per class** in a grid. Write one line per class on what you see: fluid pockets, bumps under the retina, or a smooth layered retina.
 
 - [ ] **Check image sizes and modes** (grayscale or RGB, width × height). Sizes vary, which matters when you resize in Step 4.
 
-- [ ] **Extract the patient ID from each file name.** Names look like `CNV-1016042-1.jpeg`: class, patient ID, scan number.
+- [x] **Extract the patient ID from each file name.** Names look like `CNV-1016042-1.jpeg`: class, patient ID, scan number.
 
-- [ ] **Count patients per split, and how many patients appear in both train and test.** Save a sample grid image per class to `runs/`.
+- [x] **Count patients per split, and how many patients appear in both train and test.** Save a sample grid image per class to `runs/`.
 
 
 ### Learn first

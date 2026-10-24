@@ -8,7 +8,7 @@ One line a day: what I tried, what broke, what I learned.
 
 - **2026-10-22:** Created the `oct-calibration` repo, Colab notebook (T4) and Kaggle token (Step 1). Downloaded Kermany OCT2017 (Step 2).
 - **2026-10-23:** Added the build guide + roadmap to `docs/`, a `.gitignore` (runs/, CellData/, kaggle.json) and this file. Counted images per class (train is very imbalanced: NORMAL 51k vs DRUSEN 8.6k; test is 250 each). Labelling practice: Round 1 3/8 → Round 2 6/8 → Round 3 8/8. Learned to check the RPE line first; CNV was my weak class, now drusen vs CNV is. Round 3 was drusen/CNV heavy and I got all 8: "smooth & sharp vs fuzzy & broken" works.
-- **2026-10-24:** Moved Step 2 to a Kaggle notebook (`zyanislam/oct-calibration`). Built an index table (path, split, class, patient, width, height): 0 malformed names, 0 class mismatches, 0 unreadable files. Found the Kaggle `kermany2018` copy is the older v2 (84,484 images, stored twice), so I uploaded my local Mendeley v3 copy as the private dataset `zyanislam/kermany-retinal-oct-v3`. Reran the index on v3: 109,309 images (108,309 train, 1,000 test), all checks 0. Widths vary (512, 768, 1024, 1536; height 496). Patients: 4,785 train, 635 test, 0 in both; 787 span more than one class. Saved a 20-scan grid per class. Next: patients per split, train–test overlap, sample grids.
+- **2026-10-24:** Moved Step 2 to a Kaggle notebook (`zyanislam/oct-calibration`). Built an index table (path, split, class, patient, width, height): 0 malformed names, 0 class mismatches, 0 unreadable files. Found the Kaggle `kermany2018` copy is the older v2 (84,484 images, stored twice), so I uploaded my local Mendeley v3 copy as the private dataset `zyanislam/kermany-retinal-oct-v3`. Reran the index on v3: 109,309 images (108,309 train, 1,000 test), all checks 0. Image sizes vary (8 different sizes, see `results/step2_image_sizes.csv`). Patients: 4,785 train, 635 test, 0 in both; 787 span more than one class. Saved a 20-scan grid per class.
 
 ## Data (Step 2)
 
@@ -39,7 +39,7 @@ Largest / smallest train class ratio:
 - **Patients in both train and test: 0.** The official v3 test set is already patient-disjoint, so Step 3 removes no one from training (still keep the assert).
 - **787 patients have scans in more than one class**, so the Step 3 split must group on patient only, never patient + class.
 - Train scans per patient: min 1, median 10, max 813. A few patients contribute hundreds of scans, so the same patient shows up several times in a random sample (e.g. 904464 and 6668596 twice in the CNV grid).
-- Image sizes: widths 512, 768, 1024 and 1536, all 496 px tall.
+- Image sizes: 8 different sizes. Most are 512×496 (58,037), 768×496 (29,749), 1536×496 (11,512), 512×512 (8,659) and 1024×496 (1,329), plus a few odd ones (384×496, 642×277, 900×455). Not all are 496 px tall, so resizing in Step 4 must handle both the width and the height. Full table: `results/step2_image_sizes.csv`.
 
 ### Sample grids (20 random train scans per class, seed 42)
 
