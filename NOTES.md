@@ -18,6 +18,7 @@ One entry a day: what I tried, what broke, what I learned. Newest first.
 - Wrote `src/dataset.py` (`OCTDataset`, `build_transforms`, `make_loaders`). Local checks pass: 97,479 / 10,830 / 1,000, batch `(64, 3, 224, 224)`, val identical on reload, first batch 0.5 s.
 - Checked all 109,309 image modes: grayscale except 2 RGB scans, both drusen test scans at one-off sizes (642×277, 900×455). `dataset.py` reads everything as grayscale.
 - Loader on Kaggle: 106 images/s. Profiled 200 scans: 99.7 ms reading each file from Kaggle's network disk vs 5.8 ms for transforms, so the disk is the bottleneck. Fix: resized all 109,309 scans to 256×256 grayscale on my Mac (49 s) and uploaded them as the private dataset `zyanislam/kermany-retinal-oct-v3-256` (2.4 GB vs 7 GB).
+- On the 256 dataset the first run was no faster (58 images/s, 64 ms decode): Kaggle's input disk waits about 60 ms the first time each file is read, whatever its size. A rerun in the same session was fast: **321 images/s**, decode 3.1 ms, transform 7.3 ms. Files are cached once read, and `build_index` (which opens every file) warms the cache. Transforms are now the slowest part. An epoch of 97,479 scans ≈ 5 min.
 
 </details>
 
