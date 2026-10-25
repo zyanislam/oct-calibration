@@ -231,17 +231,17 @@ You need one solid, simple model before anything interesting can happen. Calibra
 
 ### What you'll do
 
-- [ ] **Load an ImageNet-pretrained ResNet-18** from torchvision and replace its final layer with a 4-output layer.
+- [x] **Load an ImageNet-pretrained ResNet-18** from torchvision and replace its final layer with a 4-output layer.
 
-- [ ] **Handle class imbalance** with either a `WeightedRandomSampler` or a class-weighted loss, not both. Write down which and why in `NOTES.md`.
+- [x] **Handle class imbalance** with either a `WeightedRandomSampler` or a class-weighted loss, not both. Write down which and why in `NOTES.md`.
 
-- [ ] **Set up training:** AdamW optimiser, a cosine or one-cycle learning-rate schedule, and mixed precision (`torch.autocast`).
+- [x] **Set up training:** AdamW optimiser, a cosine or one-cycle learning-rate schedule, and mixed precision (`torch.autocast`).
 
-- [ ] **Log each epoch:** training loss, validation accuracy and validation **macro-F1**. Save the checkpoint with the best validation macro-F1.
+- [x] **Log each epoch:** training loss, validation accuracy and validation **macro-F1**. Save the checkpoint with the best validation macro-F1.
 
-- [ ] **Run a quick test first:** 3 epochs on 10,000 training images, to check the whole loop works. Then the full run, about 8 epochs.
+- [x] **Run a quick test first:** 3 epochs on 10,000 training images, to check the whole loop works. Then the full run, about 8 epochs.
 
-- [ ] **Save raw logits** (the outputs before softmax) for validation and test, with labels and file paths. Steps 6–8 only read this file, so you never retrain to try an idea.
+- [x] **Save raw logits** (the outputs before softmax) for validation and test, with labels and file paths. Steps 6–8 only read this file, so you never retrain to try an idea.
 
 
 ### Learn first

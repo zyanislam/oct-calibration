@@ -2,7 +2,7 @@
 
 **When a retinal-scan classifier says it's unsure, is it actually more likely to be wrong?**
 
-![Status](https://img.shields.io/badge/status-step%205%20of%2011-2f5bd3)
+![Status](https://img.shields.io/badge/status-step%206%20of%2011-2f5bd3)
 ![Data](https://img.shields.io/badge/data-Kermany%20OCT2017%20v3-555)
 ![Scans](https://img.shields.io/badge/scans-109%2C309-555)
 ![Licence](https://img.shields.io/badge/data%20licence-CC%20BY%204.0-555)
@@ -23,7 +23,7 @@ flowchart LR
 
 It's the imaging half of a wider question I work on: how to show model uncertainty to the people who rely on it. The other half is confidence cues on automatic captions for Deaf and hard-of-hearing viewers, where an unreliable "I'm unsure" flag is worse than none.
 
-> **Work in progress.** Steps 1–4 are done (data, patient split, data pipeline); there's no trained model yet. When Step 8 is done, this README will open with one sentence: *"If the model answers X% of scans and flags the rest, it catches Y% of its own mistakes."*
+> **Work in progress.** Steps 1–5 are done. The baseline ResNet-18 reaches **0.939 validation macro-F1** (0.981 on the test set); calibration and selective prediction come next. When Step 8 is done, this README will open with one sentence: *"If the model answers X% of scans and flags the rest, it catches Y% of its own mistakes."*
 
 ## The four classes
 
@@ -60,6 +60,19 @@ The fix gives an identical split on scikit-learn 1.6, 1.7 and 1.9, and the split
 
 **6. Almost every scan is grayscale.** 109,307 of 109,309 are single-channel; the two RGB exceptions are drusen test scans at one-off sizes ([table](results/step4_image_modes.csv)). The pipeline reads every scan as grayscale and copies it to the 3 channels the pretrained network expects.
 
+## Baseline (Step 5)
+
+ImageNet-pretrained ResNet-18, all layers fine-tuned, class-weighted loss, AdamW with cosine warm-up, mixed precision, 8 epochs, seed 42, one Tesla T4 (36 min).
+
+| | Accuracy | Macro-F1 |
+|---|---:|---:|
+| Validation (10,830 scans, real class mix) | 0.965 | **0.939** |
+| Test (1,000 scans, balanced) | 0.981 | 0.981 |
+
+![Training curves](figures/step5/training_curves.png)
+
+The weakest class is DRUSEN (validation F1 0.86), mostly confused with CNV ([per class](results/step5_per_class.csv)). Confidence intervals come in Step 6.
+
 ## Progress
 
 | | Step | Status |
@@ -68,8 +81,8 @@ The fix gives an identical split on scikit-learn 1.6, 1.7 and 1.9, and the split
 | 2 | Explore the data: counts, patients, image sizes | ✅ |
 | 3 | Split by patient, with a leakage check | ✅ |
 | 4 | Data pipeline and augmentation | ✅ |
-| 5 | Baseline: ImageNet-pretrained ResNet-18 | ⏳ |
-| 6 | Evaluation with bootstrap confidence intervals | |
+| 5 | Baseline: ImageNet-pretrained ResNet-18 | ✅ |
+| 6 | Evaluation with bootstrap confidence intervals | ⏳ |
 | 7 | Calibration: ECE, reliability diagrams, temperature scaling | |
 | 8 | Selective prediction: risk–coverage curve | |
 | 9 | Grad-CAM on confident mistakes | |
