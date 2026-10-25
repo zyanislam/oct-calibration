@@ -12,6 +12,8 @@ One entry a day: what I tried, what broke, what I learned. Newest first.
 - Started Step 5 on the `step5-baseline` branch. Read the Step 5 concepts page (training loop, transfer learning, loss, learning rate, imbalance, macro-F1, checkpoints, GPU budget, debugging recipe).
 - Decisions: class-weighted loss, cosine schedule with warm-up, seed 42 (see Step 5).
 - `src/model.py` and `src/train.py` written. Local CPU check: first loss 1.62 (≈ ln 4 = 1.39, slightly above because the new head starts random), overfit one batch 1.50 → 0.0001 in 25 steps, tiny `fit` saves best.pt, log.csv and both logits files.
+- On Kaggle (Tesla T4): first loss 1.621, overfit one batch → 0.0. Smoke test, 3 epochs on 10,000 scans: val macro-F1 **0.910**, test 0.975, 37 s per epoch. Fixed a PyTorch warning: with mixed precision the scaler can skip an optimiser step, so the scheduler now skips with it.
+- New notebook: turning Internet on restarts the session (lost `sys.path`), and a failed clone leaves Python caching "no module here". The setup cell now clears that cache and checks everything up front.
 
 </details>
 
@@ -240,7 +242,9 @@ ImageNet-pretrained ResNet-18, all layers fine-tuned, 4-class head (`src/model.p
 | Check | Result |
 |-------|--------|
 | First loss (≈ ln 4 = 1.39) | 1.62 on CPU, before training |
-| Overfit one batch | 1.50 → 0.0001 in 25 steps |
+| Overfit one batch | 1.50 → 0.0001 in 25 steps on CPU; 1.37 → 0.0 in 10 steps on the T4 |
+| First loss on the T4 | 1.621 |
+| Smoke test (3 epochs, 10,000 train scans) | val macro-F1 0.885 → 0.907 → **0.910**, val accuracy 0.949; test macro-F1 0.975. 37 s per epoch on a T4 |
 
 </details>
 

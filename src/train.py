@@ -99,9 +99,13 @@ def train_one_epoch(model, loader, optimizer, scheduler, scaler, loss_fn, device
         with _autocast(device):
             loss = loss_fn(model(images), labels)
         scaler.scale(loss).backward()
+        scale = scaler.get_scale()
         scaler.step(optimizer)
         scaler.update()
-        scheduler.step()
+        # If the scaler found inf gradients it skipped this optimizer step (it lowers the
+        # scale); skip the scheduler too, so the learning-rate schedule stays in step.
+        if scaler.get_scale() >= scale:
+            scheduler.step()
         total += loss.item() * len(labels)
         n += len(labels)
     return total / n
