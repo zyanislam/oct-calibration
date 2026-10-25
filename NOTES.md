@@ -58,6 +58,17 @@ One entry a day: what I tried, what broke, what I learned. Newest first.
 ## Steps
 
 <details>
+<summary><strong>Step 1 · Workspace</strong></summary>
+
+- Public GitHub repo `zyanislam/oct-calibration` with `src/`, `notebooks/`, `runs/` (gitignored) and this file.
+- Work runs in a Kaggle notebook (`zyanislam/oct-calibration`) that clones the repo and calls `src/`. Colab was the first plan; Kaggle won because the data can be attached and the GPU quota is larger.
+- Kaggle API token set up locally so notebooks and outputs can be pulled into the repo.
+- Code layout rule (top of this file): real code in `src/`, notebooks stay thin.
+- From Step 4 on: one branch per step (`stepN-name`), merged to `main` with a pull request.
+
+</details>
+
+<details>
 <summary><strong>Step 2 · Data</strong></summary>
 
 Kermany OCT2017, local copy in `CellData/OCT/` (gitignored).
@@ -77,7 +88,8 @@ Largest / smallest train class ratio:
 
 - For 1 sample of DRUSEN, there are almost 6 samples from the NORMAL class.
 
-### Patients (v3, from the Kaggle index)
+<details>
+<summary><b>Patients (v3, from the Kaggle index)</b></summary>
 
 | Split | Unique patients | CNV | DME | DRUSEN | NORMAL |
 |-------|----------------:|----:|----:|-------:|-------:|
@@ -89,7 +101,10 @@ Largest / smallest train class ratio:
 - Train scans per patient: min 1, median 10, max 813. A few patients contribute hundreds of scans, so the same patient shows up several times in a random sample (e.g. 904464 and 6668596 twice in the CNV grid).
 - Image sizes: 8 different sizes. Most are 512×496 (58,037), 768×496 (29,749), 1536×496 (11,512), 512×512 (8,659) and 1024×496 (1,329), plus a few odd ones (384×496, 642×277, 900×455). Not all are 496 px tall, so resizing in Step 4 must handle both the width and the height. Full table: `results/step2_image_sizes.csv`.
 
-### Sample grids (20 random train scans per class, seed 42)
+</details>
+
+<details>
+<summary><b>Sample grids (20 random train scans per class, seed 42)</b></summary>
 
 ![CNV grid](figures/step2/grid_CNV.png)
 
@@ -108,6 +123,8 @@ What each class looks like:
 
 </details>
 
+</details>
+
 <details>
 <summary><strong>Step 3 · Patient split</strong></summary>
 
@@ -122,7 +139,8 @@ Code: `src/data.py` (`build_index`, `patient_split`, `check_no_leak`). Split sav
 | val   | 10,830 |   482 | 34.4% | 10.5% | 8.0% | 47.2% |
 | test  |  1,000 |   635 | 25% | 25% | 25% | 25% |
 
-### Finding: a fixed seed was not enough for a reproducible split
+<details>
+<summary><b>Finding: a fixed seed was not enough for a reproducible split</b></summary>
 
 My first split used `StratifiedGroupKFold(shuffle=True, random_state=42)`. On Kaggle it produced a different validation set from the same code on my Mac, because Kaggle has an older scikit-learn (1.6/1.7 reproduce it exactly; 1.9 differs). The Kaggle split was also badly balanced:
 
@@ -142,6 +160,55 @@ If we split by image, the same patient's scans can appear in both the training a
 
 </details>
 
+</details>
+
+<details>
+<summary><strong>Step 4 · Data pipeline</strong> (in progress, branch <code>step4-pipeline</code>)</summary>
+
+Goal: train / val / test DataLoaders that read `splits/oct_split_fold0.csv` and load a batch in under a second.
+
+<details>
+<summary><b>First scan</b></summary>
+
+`decode_image("test/CNV/CNV-1032178-1.jpeg")` → `torch.uint8`, shape `[1, 496, 1024]`: one channel (grayscale), values 0–255. Needs copying to 3 channels for the pretrained ResNet, and converting to float before `Normalize`.
+
+</details>
+
+<details>
+<summary><b>Experiment 1 · Resize vs pad to square</b></summary>
+
+![Resize vs pad](figures/step4/resize_vs_pad_CNV-1032178-1.png)
+
+| Size | Share of scans | Resize: horizontal squash | Pad: share of image that is retina |
+|------|---------------:|--------------------------:|-----------------------------------:|
+| 512×496 | 53% | 0.97 | 97% |
+| 768×496 | 27% | 0.65 | 65% |
+| 1536×496 | 11% | 0.32 | 32% |
+| 512×512 | 8% | 1.00 | 100% |
+| 1024×496 | 1% | 0.48 | 48% |
+
+The choice barely matters for 61% of scans and matters a lot for the wide ones.
+
+</details>
+
+<details>
+<summary><b>Finding · Every 512×512 scan is DME</b></summary>
+
+All 8,659 scans at 512×512 are DME, about 75% of DME scans (`results/step4_size_by_class.csv`). They probably come from a different scanner or clinic, so the model could learn the scanner instead of the fluid. Padding would make this worse (512×512 scans would be the only ones with no black bars). Check with Grad-CAM in Step 9, and report DME results for 512×512 and other sizes separately.
+
+</details>
+
+<details>
+<summary><b>Decisions</b> (write these yourself)</summary>
+
+- **Resize strategy:** <!-- your choice and one line of reasoning -->
+- **Grayscale to 3 channels:** <!-- where in the transform, and why -->
+- **Augmentation values:** <!-- rotation, flip, crop, jitter; why no vertical flip -->
+
+</details>
+
+</details>
+
 <details>
 <summary><strong>Labelling practice</strong></summary>
 
@@ -152,7 +219,8 @@ Anatomy reference (normal, DME, CNV, drusen with layers labelled):
 
 ![Labelled OCT anatomy](figures/practice/anatomy-labelled.png)
 
-### Round 1 (2026-10-23)
+<details>
+<summary><b>Round 1 · Fri 23 Oct 2026</b></summary>
 
 ![Round 1 scans](figures/practice/round1.png)
 
@@ -176,7 +244,10 @@ Lessons:
 - #2 is labelled DRUSEN but looks almost normal to me. Kermany labels are image-level and can be noisy; remember this for Step 7–8 (confident "mistakes" may be label errors).
 - #8 (DME) is low quality and cropped: real data has bad scans too.
 
-### Round 2 (2026-10-23)
+</details>
+
+<details>
+<summary><b>Round 2 · Fri 23 Oct 2026</b></summary>
 
 ![Round 2 scans](figures/practice/round2.png)
 
@@ -202,7 +273,10 @@ Lessons:
 - #1 is DME but the scan is off-centre (the big dip on the left is the optic disc, not the fovea).
 - Drusen vs CNV is my weak spot now. Next round: look for *smooth & sharp* (drusen) vs *fuzzy, broken, with fluid* (CNV).
 
-### Round 3 (2026-10-23)
+</details>
+
+<details>
+<summary><b>Round 3 · Fri 23 Oct 2026</b></summary>
 
 ![Round 3 scans](figures/practice/round3.png)
 
@@ -220,5 +294,7 @@ From `runs/quiz/round3/quiz.png`. Weighted toward drusen vs CNV (not 2 per class
 | 8 | DRUSEN | | DRUSEN | ✓ |
 
 Score: 8/8 (3/8 → 6/8 → 8/8). Drusen vs CNV sorted on the drusen/CNV-heavy round.
+
+</details>
 
 </details>
