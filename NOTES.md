@@ -7,6 +7,15 @@
 One entry a day: what I tried, what broke, what I learned. Newest first.
 
 <details open>
+<summary><b>Mon 26 Oct 2026</b></summary>
+
+- Started Step 5 on the `step5-baseline` branch. Read the Step 5 concepts page (training loop, transfer learning, loss, learning rate, imbalance, macro-F1, checkpoints, GPU budget, debugging recipe).
+- Decisions: class-weighted loss, cosine schedule with warm-up, seed 42 (see Step 5).
+- `src/model.py` and `src/train.py` written. Local CPU check: first loss 1.62 (≈ ln 4 = 1.39, slightly above because the new head starts random), overfit one batch 1.50 → 0.0001 in 25 steps, tiny `fit` saves best.pt, log.csv and both logits files.
+
+</details>
+
+<details>
 <summary><b>Sun 25 Oct 2026</b></summary>
 
 - Started Step 4 on the `step4-pipeline` branch.
@@ -211,6 +220,27 @@ Kaggle's input disk waits on the first read of every file; a 65 s copy to `/tmp`
   - **Rotation** up to ±10°: patients' heads tilt slightly, and much more than that never happens in real scans.
   - **Brightness and contrast** ±10%: scanners and clinics differ in brightness, and this may also weaken the 512×512 scanner shortcut.
   - **No vertical flip:** an upside-down retina never occurs in a real OCT scan (vitreous on top, choroid at the bottom), so it would teach the model something impossible.
+
+</details>
+
+<details>
+<summary><strong>Step 5 · Baseline</strong></summary>
+
+ImageNet-pretrained ResNet-18, all layers fine-tuned, 4-class head (`src/model.py`); training loop in `src/train.py`.
+
+### Decisions
+
+- **Class imbalance: class-weighted loss**, not the sampler. With the sampler, the 7,754 DRUSEN training scans would repeat about 5 times per epoch, which risks overfitting on them; with a weighted loss every scan is seen once per epoch. Weights are n_total / (4 × n_class): CNV 0.73, DME 2.39, DRUSEN 3.14, NORMAL 0.53. Consequence for Step 7: weighting makes every class push about equally, so the model's prior is close to balanced. That matches the balanced test set better than the validation set (real mix), which is where temperature is fitted.
+- **Schedule: cosine with a short warm-up** (5% of steps). The warm-up stops the new random head from sending large gradients into the pretrained layers at the start; one-cycle can work well but has more settings to get right.
+- **Seed: 42**, set for `random`, `numpy` and `torch`. A seed makes the run's random choices (head initialisation, shuffle order, augmentation) repeat, so a change in results can be traced to a change in the code. It doesn't give bit-identical results across machines or library versions, and one seed is one sample; Step 10's ensemble uses several.
+- **Left off on purpose:** label smoothing and focal loss, which change confidence by themselves and would blur Step 7.
+
+### Debugging checks
+
+| Check | Result |
+|-------|--------|
+| First loss (≈ ln 4 = 1.39) | 1.62 on CPU, before training |
+| Overfit one batch | 1.50 → 0.0001 in 25 steps |
 
 </details>
 
