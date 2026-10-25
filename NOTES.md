@@ -182,7 +182,7 @@ All 8,659 scans at 512×512 are DME, about 75% of DME scans (`results/step4_size
 
 ### Decisions (write these yourself)
 
-- **Resize strategy:** <!-- your choice and one line of reasoning -->
+- **Resize strategy:** plain resize to 224x224. It won't create a giveaway for DME, will keep the details where they matter and match the already published work making them comparable to theirs. The only cost: wide scans are squashed; keep-aspect resizing is a possible later experiment.
 - **Grayscale to 3 channels:** <!-- where in the transform, and why -->
 - **Augmentation values:** <!-- rotation, flip, crop, jitter; why no vertical flip -->
 
