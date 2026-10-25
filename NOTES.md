@@ -14,6 +14,7 @@ One entry a day: what I tried, what broke, what I learned. Newest first.
 - `src/model.py` and `src/train.py` written. Local CPU check: first loss 1.62 (≈ ln 4 = 1.39, slightly above because the new head starts random), overfit one batch 1.50 → 0.0001 in 25 steps, tiny `fit` saves best.pt, log.csv and both logits files.
 - On Kaggle (Tesla T4): first loss 1.621, overfit one batch → 0.0. Smoke test, 3 epochs on 10,000 scans: val macro-F1 **0.910**, test 0.975, 37 s per epoch. Fixed a PyTorch warning: with mixed precision the scaler can skip an optimiser step, so the scheduler now skips with it.
 - New notebook: turning Internet on restarts the session (lost `sys.path`), and a failed clone leaves Python caching "no module here". The setup cell now clears that cache and checks everything up front.
+- Full run as a saved version (data copy 63 s, then 8 epochs × ~262 s on a T4): best val macro-F1 **0.9388** at epoch 6, test 0.981. DRUSEN is the weakest class (val F1 0.86), confused mostly with CNV. Step 5 done.
 
 </details>
 
@@ -245,6 +246,30 @@ ImageNet-pretrained ResNet-18, all layers fine-tuned, 4-class head (`src/model.p
 | Overfit one batch | 1.50 → 0.0001 in 25 steps on CPU; 1.37 → 0.0 in 10 steps on the T4 |
 | First loss on the T4 | 1.621 |
 | Smoke test (3 epochs, 10,000 train scans) | val macro-F1 0.885 → 0.907 → **0.910**, val accuracy 0.949; test macro-F1 0.975. 37 s per epoch on a T4 |
+| **Full run (8 epochs, 97,479 train scans)** | best val macro-F1 **0.9388** (epoch 6), val accuracy 0.965; test macro-F1 **0.981**, accuracy 0.981. ~262 s per epoch, 36 min in total, T4 |
+
+### Full run
+
+![Training curves](figures/step5/training_curves.png)
+
+| Epoch | Train loss | Val loss | Val acc | Val macro-F1 |
+|------:|-----------:|---------:|--------:|-------------:|
+| 1 | 0.300 | 0.129 | 0.960 | 0.929 |
+| 2 | 0.176 | 0.133 | 0.954 | 0.921 |
+| 3 | 0.157 | 0.134 | 0.955 | 0.923 |
+| 4 | 0.135 | 0.117 | 0.963 | 0.935 |
+| 5 | 0.113 | 0.120 | 0.961 | 0.932 |
+| 6 | 0.093 | 0.114 | 0.965 | **0.939** ← best.pt |
+| 7 | 0.076 | 0.117 | 0.965 | 0.938 |
+| 8 | 0.068 | 0.121 | 0.965 | 0.937 |
+
+Reading the curves (check 7): validation is already strong after epoch 1, wobbles while the learning rate is high (epochs 2–3), then improves as the cosine schedule lowers it. After epoch 6, training loss keeps falling but validation loss creeps up and macro-F1 flattens: the start of overfitting, which `best.pt` (epoch 6) sidesteps. More epochs wouldn't help.
+
+**Per class** (`results/step5_per_class.csv`): DRUSEN is the weakest class, F1 0.859 on val (precision 0.83, recall 0.89). Most of its errors are with CNV: 117 CNV scans predicted DRUSEN and 66 DRUSEN predicted CNV, the same pair I mixed up in labelling Round 2. DME recall is 0.90 on val, with 86 DME scans called NORMAL. On test, 15 of 250 DRUSEN scans are called CNV.
+
+Test (0.981) is well above val (0.939). The test set is balanced like the model's prior (weighted loss) and is the cleaner official set. Model choices are made on validation only.
+
+Logits are saved as `logits_val.pt` and `logits_test.pt` (logits, labels, rows). `rows` index the split's rows in `splits/oct_split_fold0.csv`, which gives the file path and patient. Outputs are in `runs/step5_baseline/` (gitignored, 45 MB checkpoint).
 
 </details>
 
