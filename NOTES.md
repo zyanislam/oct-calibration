@@ -185,11 +185,16 @@ The choice barely matters for 61% of scans and matters a lot for the wide ones.
 
 All 8,659 scans at 512×512 are DME, about 75% of DME scans (`results/step4_size_by_class.csv`). They probably come from a different scanner or clinic, so the model could learn the scanner instead of the fluid. Padding would make this worse (512×512 scans would be the only ones with no black bars). Check with Grad-CAM in Step 9, and report DME results for 512×512 and other sizes separately.
 
-### Decisions (write these yourself)
+### Decisions
 
 - **Resize strategy:** plain resize to 224x224. It won't create a giveaway for DME, will keep the details where they matter and match the already published work making them comparable to theirs. The only cost: wide scans are squashed; keep-aspect resizing is a possible later experiment.
-- **Grayscale to 3 channels:** <!-- where in the transform, and why -->
-- **Augmentation values:** <!-- rotation, flip, crop, jitter; why no vertical flip -->
+- **Grayscale to 3 channels:** ResNet-18 is trained on coloured images (3 channels: r, g, b) and our scans have 1 channel (grey), so a 1-channel image won't run through it. I copy the grey channel 3 times (`v2.Grayscale(num_output_channels=3)`) rather than changing the network's first layer to take 1 channel, because copying keeps the pretrained weights usable unchanged. It is the first step of the transform, before the resize. Moving it after the resize would give the same result with a third of the resize work, a small speed-up now that transforms are the slowest part.
+- **Augmentation values:** the model will be given a slightly different version of each training scan. This helps it learn how CNV looks, not the exact image of CNV, which reduces overfitting. Training only; val and test get the resize alone, so their results don't change between runs.
+  - **Slight random crop**, keeping 85–100% of the image at a near-square shape (`scale=(0.85, 1.0)`, `ratio=(0.9, 1.1)`), done **after** the resize: scans aren't perfectly centred, and a bigger crop could cut off the lesion. On a raw 1536-wide scan a square crop would throw away two-thirds of the retina, which is why it comes after the resize.
+  - **Horizontal flip** (50%): left and right eyes are mirror images, so a flipped scan is still realistic.
+  - **Rotation** up to ±10°: patients' heads tilt slightly, and much more than that never happens in real scans.
+  - **Brightness and contrast** ±10%: scanners and clinics differ in brightness, and this may also weaken the 512×512 scanner shortcut.
+  - **No vertical flip:** an upside-down retina never occurs in a real OCT scan (vitreous on top, choroid at the bottom), so it would teach the model something impossible.
 
 </details>
 
