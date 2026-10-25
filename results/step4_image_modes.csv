@@ -1,0 +1,3 @@
+mode,scans,note
+L,109307,grayscale (1 channel)
+RGB,2,test/DRUSEN/DRUSEN-52917-1.jpeg (642x277; channels differ slightly) and test/DRUSEN/DRUSEN-9012418-1.jpeg (900x455; channels identical). Both are also the only scans at their sizes. Read as grayscale by src/dataset.py

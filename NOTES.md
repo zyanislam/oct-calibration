@@ -14,6 +14,9 @@ One entry a day: what I tried, what broke, what I learned. Newest first.
 - Experiment 1: resize straight to 224×224 vs pad to a square first. Only matters for the wide scans (~38%): resize squashes 1536×496 to a third of its width, padding leaves only 32% of the image as retina.
 - Found that **all 8,659 scans at 512×512 are DME** (about 75% of DME scans), probably a different scanner or clinic. Possible shortcut: the model could learn the scanner instead of the fluid. Table: `results/step4_size_by_class.csv`. Check with Grad-CAM in Step 9.
 - Kaggle dataset usability score 5.0 → 8.13 (description, tags, sources, cover image).
+- Experiments 2 and 3: 3 channels → resize → float → ImageNet normalise gives `[3, 224, 224]`, values −2.1 to 2.6; augmented copies still look like real retinas. `RandomResizedCrop` must come after `Resize`, or wide scans lose most of their width.
+- Wrote `src/dataset.py` (`OCTDataset`, `build_transforms`, `make_loaders`). Local checks pass: 97,479 / 10,830 / 1,000, batch `(64, 3, 224, 224)`, val identical on reload, first batch 0.5 s.
+- Checked all 109,309 image modes: grayscale except 2 RGB scans, both drusen test scans at one-off sizes (642×277, 900×455). `dataset.py` reads everything as grayscale.
 
 </details>
 

@@ -23,7 +23,7 @@ flowchart LR
 
 It's the imaging half of a wider question I work on: how to show model uncertainty to the people who rely on it. The other half is confidence cues on automatic captions for Deaf and hard-of-hearing viewers, where an unreliable "I'm unsure" flag is worse than none.
 
-> **Work in progress.** Steps 1–3 are done; there's no trained model yet. When Step 8 is done, this README will open with one sentence: *"If the model answers X% of scans and flags the rest, it catches Y% of its own mistakes."*
+> **Work in progress.** Steps 1–3 are done and Step 4 (data pipeline) is nearly done; there's no trained model yet. When Step 8 is done, this README will open with one sentence: *"If the model answers X% of scans and flags the rest, it catches Y% of its own mistakes."*
 
 ## The four classes
 
@@ -52,7 +52,11 @@ The fix gives an identical split on scikit-learn 1.6, 1.7 and 1.9, and the split
 
 **3. Patients, not scans, are the unit that matters.** One patient contributes up to 813 training scans, and 787 patients have scans in more than one class. If you split by image, the model can score well by recognising a patient's eye rather than the disease. Every split here keeps each patient on one side, and an `assert` checks it.
 
-**4. The scans aren't one size.** There are 8 image sizes, from 512×512 to 1536×496 ([table](results/step2_image_sizes.csv)), so resizing is a real design choice rather than a default.
+**4. The scans aren't one size, and one size gives away a class.** There are 8 image sizes, from 512×512 to 1536×496 ([table](results/step2_image_sizes.csv)). **Every 512×512 scan is DME**: 8,659 scans, about 75% of all DME ([table](results/step4_size_by_class.csv)). They probably come from a different scanner or clinic, so a model could learn the scanner instead of the disease. That decided the resize: a plain resize to 224×224, because padding to a square would leave black bars on every scan except those DME ones. Grad-CAM in Step 9 checks whether the model takes the shortcut anyway.
+
+![Resize vs pad on a 1024×496 CNV scan](figures/step4/resize_vs_pad_CNV-1032178-1.png)
+
+**5. Almost every scan is grayscale.** 109,307 of 109,309 are single-channel; the two RGB exceptions are drusen test scans at one-off sizes ([table](results/step4_image_modes.csv)). The pipeline reads every scan as grayscale and copies it to the 3 channels the pretrained network expects.
 
 ## Progress
 
@@ -98,7 +102,7 @@ Validation is about 10% of the training *patients*, with class shares matched to
 ## Repository layout
 
 ```
-src/        project code: data.py (index + patient split); more as steps land
+src/        project code: data.py (index + patient split), dataset.py (Dataset, transforms, loaders)
 splits/     the saved patient split that every step from 3 on reads
 results/    small CSV tables of every result, one file per step
 figures/    figures used in NOTES.md and this README
@@ -118,9 +122,14 @@ from src.data import build_index, patient_split
 
 index, problems = build_index("path/to/OCT")   # expects train/ and test/ with one folder per class
 split, removed = patient_split(index, fold=0)  # same split as splits/oct_split_fold0.csv
+
+from src.dataset import make_loaders
+
+loaders = make_loaders("path/to/OCT")          # reads splits/oct_split_fold0.csv
+images, labels, rows = next(iter(loaders["train"]))  # (64, 3, 224, 224), labels 0-3
 ```
 
-Training and evaluation commands will be added as Steps 4–8 land.
+Training and evaluation commands will be added as Steps 5–8 land.
 
 ## References
 

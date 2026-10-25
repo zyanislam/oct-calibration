@@ -81,7 +81,7 @@ You can't judge a model on data you haven't looked at. Exploring first tells you
 
 - [x] **Look at 20 images per class** in a grid. Write one line per class on what you see: fluid pockets, bumps under the retina, or a smooth layered retina.
 
-- [ ] **Check image sizes and modes** (grayscale or RGB, width × height). Sizes vary, which matters when you resize in Step 4.
+- [x] **Check image sizes and modes** (grayscale or RGB, width × height). Sizes vary, which matters when you resize in Step 4.
 
 - [x] **Extract the patient ID from each file name.** Names look like `CNV-1016042-1.jpeg`: class, patient ID, scan number.
 
@@ -180,11 +180,11 @@ The model only ever sees what the pipeline gives it. Getting resizing, normalisa
 
 ### What you'll do
 
-- [ ] **Write a PyTorch `Dataset`** that reads one image, applies a transform, and returns `(image, label, index)`. You'll use the index in Steps 8–9 to find which scans the model got wrong.
+- [x] **Write a PyTorch `Dataset`** that reads one image, applies a transform, and returns `(image, label, index)`. You'll use the index in Steps 8–9 to find which scans the model got wrong.
 
-- [ ] **Convert grayscale to 3 channels and normalise with ImageNet mean and standard deviation.** The pretrained network expects that input.
+- [x] **Convert grayscale to 3 channels and normalise with ImageNet mean and standard deviation.** The pretrained network expects that input.
 
-- [ ] **Choose training augmentations:** small rotation (about ±10°), horizontal flip, a slight random crop, and brightness or contrast jitter. Validation and test get **resize only**.
+- [x] **Choose training augmentations:** small rotation (about ±10°), horizontal flip, a slight random crop, and brightness or contrast jitter. Validation and test get **resize only**.
 
 - [ ] **Plot one augmented batch** and check every image still looks like a plausible retina scan.
 
