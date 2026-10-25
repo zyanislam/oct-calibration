@@ -2,7 +2,7 @@
 
 **When a retinal-scan classifier says it's unsure, is it actually more likely to be wrong?**
 
-![Status](https://img.shields.io/badge/status-step%204%20of%2011-2f5bd3)
+![Status](https://img.shields.io/badge/status-step%205%20of%2011-2f5bd3)
 ![Data](https://img.shields.io/badge/data-Kermany%20OCT2017%20v3-555)
 ![Scans](https://img.shields.io/badge/scans-109%2C309-555)
 ![Licence](https://img.shields.io/badge/data%20licence-CC%20BY%204.0-555)
@@ -23,7 +23,7 @@ flowchart LR
 
 It's the imaging half of a wider question I work on: how to show model uncertainty to the people who rely on it. The other half is confidence cues on automatic captions for Deaf and hard-of-hearing viewers, where an unreliable "I'm unsure" flag is worse than none.
 
-> **Work in progress.** Steps 1–3 are done and Step 4 (data pipeline) is nearly done; there's no trained model yet. When Step 8 is done, this README will open with one sentence: *"If the model answers X% of scans and flags the rest, it catches Y% of its own mistakes."*
+> **Work in progress.** Steps 1–4 are done (data, patient split, data pipeline); there's no trained model yet. When Step 8 is done, this README will open with one sentence: *"If the model answers X% of scans and flags the rest, it catches Y% of its own mistakes."*
 
 ## The four classes
 
@@ -56,7 +56,9 @@ The fix gives an identical split on scikit-learn 1.6, 1.7 and 1.9, and the split
 
 ![Resize vs pad on a 1024×496 CNV scan](figures/step4/resize_vs_pad_CNV-1032178-1.png)
 
-**5. Almost every scan is grayscale.** 109,307 of 109,309 are single-channel; the two RGB exceptions are drusen test scans at one-off sizes ([table](results/step4_image_modes.csv)). The pipeline reads every scan as grayscale and copies it to the 3 channels the pretrained network expects.
+**5. Loading the data was the first bottleneck, not the model.** Reading scans straight from Kaggle's input disk gave about 100 images/s, because the disk waits on the first read of every file. Resizing every scan once to 256×256 and copying them to local disk at the start of each session (about 65 s) raised it to **359–489 images/s**: about 3–4 minutes of loading per epoch instead of 15 ([numbers](results/step4_loader_speed.csv)).
+
+**6. Almost every scan is grayscale.** 109,307 of 109,309 are single-channel; the two RGB exceptions are drusen test scans at one-off sizes ([table](results/step4_image_modes.csv)). The pipeline reads every scan as grayscale and copies it to the 3 channels the pretrained network expects.
 
 ## Progress
 
@@ -65,8 +67,8 @@ The fix gives an identical split on scikit-learn 1.6, 1.7 and 1.9, and the split
 | 1 | Workspace: repo, Kaggle notebook, dataset access | ✅ |
 | 2 | Explore the data: counts, patients, image sizes | ✅ |
 | 3 | Split by patient, with a leakage check | ✅ |
-| 4 | Data pipeline and augmentation | ⏳ |
-| 5 | Baseline: ImageNet-pretrained ResNet-18 | |
+| 4 | Data pipeline and augmentation | ✅ |
+| 5 | Baseline: ImageNet-pretrained ResNet-18 | ⏳ |
 | 6 | Evaluation with bootstrap confidence intervals | |
 | 7 | Calibration: ECE, reliability diagrams, temperature scaling | |
 | 8 | Selective prediction: risk–coverage curve | |

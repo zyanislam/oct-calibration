@@ -186,7 +186,7 @@ The model only ever sees what the pipeline gives it. Getting resizing, normalisa
 
 - [x] **Choose training augmentations:** small rotation (about ±10°), horizontal flip, a slight random crop, and brightness or contrast jitter. Validation and test get **resize only**.
 
-- [ ] **Plot one augmented batch** and check every image still looks like a plausible retina scan.
+- [x] **Plot one augmented batch** and check every image still looks like a plausible retina scan.
 
 
 ### Learn first

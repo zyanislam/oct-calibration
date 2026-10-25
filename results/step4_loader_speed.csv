@@ -1,0 +1,7 @@
+setup,run,loader_images_per_s,decode_ms_per_scan,transform_ms_per_scan,first_batch_s
+original v3 on Kaggle input disk,fresh interactive session,106,99.7,5.8,7.61
+256x256 on Kaggle input disk,first read in session,58,64.0,4.7,7.30
+256x256 on Kaggle input disk,rerun (files cached),321,3.1,7.3,0.92
+256x256 on Kaggle input disk,saved run (fresh session),107,27.5,4.1,2.50
+256x256 copied to local disk (/tmp),saved run (fresh session),489,0.6,5.3,0.80
+256x256 copied to local disk (/tmp),saved run (fresh session),359,1.4,7.3,1.13

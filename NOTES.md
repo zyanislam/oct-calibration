@@ -19,6 +19,8 @@ One entry a day: what I tried, what broke, what I learned. Newest first.
 - Checked all 109,309 image modes: grayscale except 2 RGB scans, both drusen test scans at one-off sizes (642×277, 900×455). `dataset.py` reads everything as grayscale.
 - Loader on Kaggle: 106 images/s. Profiled 200 scans: 99.7 ms reading each file from Kaggle's network disk vs 5.8 ms for transforms, so the disk is the bottleneck. Fix: resized all 109,309 scans to 256×256 grayscale on my Mac (49 s) and uploaded them as the private dataset `zyanislam/kermany-retinal-oct-v3-256` (2.4 GB vs 7 GB).
 - On the 256 dataset the first run was no faster (58 images/s, 64 ms decode): Kaggle's input disk waits about 60 ms the first time each file is read, whatever its size. A rerun in the same session was fast: **321 images/s**, decode 3.1 ms, transform 7.3 ms. Files are cached once read, and `build_index` (which opens every file) warms the cache. Transforms are now the slowest part. An epoch of 97,479 scans ≈ 5 min.
+- Fresh sessions (saved runs) don't have the cache, so they were back at 107 images/s. Added a cell that copies the 256 dataset to local disk (`/tmp/oct256`, 65–68 s with 64 threads): saved runs now reach **359–489 images/s**, first batch about 1 s. In an interactive session, wait for Kaggle's own dataset download to finish before copying, or the copy crawls. Removed the original 7 GB dataset from the notebook's inputs, since every run downloads all inputs. All numbers: `results/step4_loader_speed.csv`.
+- Plotted one augmented training batch: believable retinas, mixed classes, nothing upside down (`figures/step4/augmented_batch.png`). Step 4 done.
 
 </details>
 
@@ -159,7 +161,7 @@ If we split by image, the same patient's scans can appear in both the training a
 </details>
 
 <details>
-<summary><strong>Step 4 · Data pipeline</strong> (in progress, branch <code>step4-pipeline</code>)</summary>
+<summary><strong>Step 4 · Data pipeline</strong></summary>
 
 Goal: train / val / test DataLoaders that read `splits/oct_split_fold0.csv` and load a batch in under a second.
 
@@ -184,6 +186,20 @@ The choice barely matters for 61% of scans and matters a lot for the wide ones.
 ### Finding · Every 512×512 scan is DME
 
 All 8,659 scans at 512×512 are DME, about 75% of DME scans (`results/step4_size_by_class.csv`). They probably come from a different scanner or clinic, so the model could learn the scanner instead of the fluid. Padding would make this worse (512×512 scans would be the only ones with no black bars). Check with Grad-CAM in Step 9, and report DME results for 512×512 and other sizes separately.
+
+### Loader speed
+
+| Setup | Images/s |
+|-------|---------:|
+| Original v3, Kaggle input disk | 106 |
+| 256×256, Kaggle input disk, fresh session | 107 |
+| 256×256 copied to local disk | **359–489** |
+
+Kaggle's input disk waits on the first read of every file; a 65 s copy to `/tmp` at the start of each session removes that. Transforms (5–7 ms per scan) are now the slowest part.
+
+### One augmented training batch
+
+![Augmented batch](figures/step4/augmented_batch.png)
 
 ### Decisions
 
