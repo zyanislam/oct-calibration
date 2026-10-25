@@ -7,6 +7,24 @@
 One entry a day: what I tried, what broke, what I learned. Newest first.
 
 <details open>
+<summary><b>Sun 25 Oct 2026</b></summary>
+
+- Started Step 4 on the `step4-pipeline` branch.
+- Loaded one scan with `decode_image`: `uint8`, 1 channel (grayscale), 496×1024.
+- Experiment 1: resize straight to 224×224 vs pad to a square first. Only matters for the wide scans (~38%): resize squashes 1536×496 to a third of its width, padding leaves only 32% of the image as retina.
+- Found that **all 8,659 scans at 512×512 are DME** (about 75% of DME scans), probably a different scanner or clinic. Possible shortcut: the model could learn the scanner instead of the fluid. Table: `results/step4_size_by_class.csv`. Check with Grad-CAM in Step 9.
+- Kaggle dataset usability score 5.0 → 8.13 (description, tags, sources, cover image).
+- Experiments 2 and 3: 3 channels → resize → float → ImageNet normalise gives `[3, 224, 224]`, values −2.1 to 2.6; augmented copies still look like real retinas. `RandomResizedCrop` must come after `Resize`, or wide scans lose most of their width.
+- Wrote `src/dataset.py` (`OCTDataset`, `build_transforms`, `make_loaders`). Local checks pass: 97,479 / 10,830 / 1,000, batch `(64, 3, 224, 224)`, val identical on reload, first batch 0.5 s.
+- Checked all 109,309 image modes: grayscale except 2 RGB scans, both drusen test scans at one-off sizes (642×277, 900×455). `dataset.py` reads everything as grayscale.
+- Loader on Kaggle: 106 images/s. Profiled 200 scans: 99.7 ms reading each file from Kaggle's network disk vs 5.8 ms for transforms, so the disk is the bottleneck. Fix: resized all 109,309 scans to 256×256 grayscale on my Mac (49 s) and uploaded them as the private dataset `zyanislam/kermany-retinal-oct-v3-256` (2.4 GB vs 7 GB).
+- On the 256 dataset the first run was no faster (58 images/s, 64 ms decode): Kaggle's input disk waits about 60 ms the first time each file is read, whatever its size. A rerun in the same session was fast: **321 images/s**, decode 3.1 ms, transform 7.3 ms. Files are cached once read, and `build_index` (which opens every file) warms the cache. Transforms are now the slowest part. An epoch of 97,479 scans ≈ 5 min.
+- Fresh sessions (saved runs) don't have the cache, so they were back at 107 images/s. Added a cell that copies the 256 dataset to local disk (`/tmp/oct256`, 65–68 s with 64 threads): saved runs now reach **359–489 images/s**, first batch about 1 s. In an interactive session, wait for Kaggle's own dataset download to finish before copying, or the copy crawls. Removed the original 7 GB dataset from the notebook's inputs, since every run downloads all inputs. All numbers: `results/step4_loader_speed.csv`.
+- Plotted one augmented training batch: believable retinas, mixed classes, nothing upside down (`figures/step4/augmented_batch.png`). Step 4 done.
+
+</details>
+
+<details>
 <summary><b>Sat 24 Oct 2026</b></summary>
 
 - Moved Step 2 to a Kaggle notebook (`zyanislam/oct-calibration`).
@@ -45,6 +63,17 @@ One entry a day: what I tried, what broke, what I learned. Newest first.
 </details>
 
 ## Steps
+
+<details>
+<summary><strong>Step 1 · Workspace</strong></summary>
+
+- Public GitHub repo `zyanislam/oct-calibration` with `src/`, `notebooks/`, `runs/` (gitignored) and this file.
+- Work runs in a Kaggle notebook (`zyanislam/oct-calibration`) that clones the repo and calls `src/`. Colab was the first plan; Kaggle won because the data can be attached and the GPU quota is larger.
+- Kaggle API token set up locally so notebooks and outputs can be pulled into the repo.
+- Code layout rule (top of this file): real code in `src/`, notebooks stay thin.
+- From Step 4 on: one branch per step (`stepN-name`), merged to `main` with a pull request.
+
+</details>
 
 <details>
 <summary><strong>Step 2 · Data</strong></summary>
@@ -132,6 +161,60 @@ If we split by image, the same patient's scans can appear in both the training a
 </details>
 
 <details>
+<summary><strong>Step 4 · Data pipeline</strong></summary>
+
+Goal: train / val / test DataLoaders that read `splits/oct_split_fold0.csv` and load a batch in under a second.
+
+### First scan
+
+`decode_image("test/CNV/CNV-1032178-1.jpeg")` → `torch.uint8`, shape `[1, 496, 1024]`: one channel (grayscale), values 0–255. Needs copying to 3 channels for the pretrained ResNet, and converting to float before `Normalize`.
+
+### Experiment 1 · Resize vs pad to square
+
+![Resize vs pad](figures/step4/resize_vs_pad_CNV-1032178-1.png)
+
+| Size | Share of scans | Resize: horizontal squash | Pad: share of image that is retina |
+|------|---------------:|--------------------------:|-----------------------------------:|
+| 512×496 | 53% | 0.97 | 97% |
+| 768×496 | 27% | 0.65 | 65% |
+| 1536×496 | 11% | 0.32 | 32% |
+| 512×512 | 8% | 1.00 | 100% |
+| 1024×496 | 1% | 0.48 | 48% |
+
+The choice barely matters for 61% of scans and matters a lot for the wide ones.
+
+### Finding · Every 512×512 scan is DME
+
+All 8,659 scans at 512×512 are DME, about 75% of DME scans (`results/step4_size_by_class.csv`). They probably come from a different scanner or clinic, so the model could learn the scanner instead of the fluid. Padding would make this worse (512×512 scans would be the only ones with no black bars). Check with Grad-CAM in Step 9, and report DME results for 512×512 and other sizes separately.
+
+### Loader speed
+
+| Setup | Images/s |
+|-------|---------:|
+| Original v3, Kaggle input disk | 106 |
+| 256×256, Kaggle input disk, fresh session | 107 |
+| 256×256 copied to local disk | **359–489** |
+
+Kaggle's input disk waits on the first read of every file; a 65 s copy to `/tmp` at the start of each session removes that. Transforms (5–7 ms per scan) are now the slowest part.
+
+### One augmented training batch
+
+![Augmented batch](figures/step4/augmented_batch.png)
+
+### Decisions
+
+- **Resize strategy:** plain resize to 224x224. It won't create a giveaway for DME, will keep the details where they matter and match the already published work making them comparable to theirs. The only cost: wide scans are squashed; keep-aspect resizing is a possible later experiment.
+- **Grayscale to 3 channels:** ResNet-18 is trained on coloured images (3 channels: r, g, b) and our scans have 1 channel (grey), so a 1-channel image won't run through it. I copy the grey channel 3 times (`v2.Grayscale(num_output_channels=3)`) rather than changing the network's first layer to take 1 channel, because copying keeps the pretrained weights usable unchanged. It is the first step of the transform, before the resize. Moving it after the resize would give the same result with a third of the resize work, a small speed-up now that transforms are the slowest part.
+- **Augmentation values:** the model will be given a slightly different version of each training scan. This helps it learn how CNV looks, not the exact image of CNV, which reduces overfitting. Training only; val and test get the resize alone, so their results don't change between runs.
+  - **Slight random crop**, keeping 85–100% of the image at a near-square shape (`scale=(0.85, 1.0)`, `ratio=(0.9, 1.1)`), done **after** the resize: scans aren't perfectly centred, and a bigger crop could cut off the lesion. On a raw 1536-wide scan a square crop would throw away two-thirds of the retina, which is why it comes after the resize.
+  - **Horizontal flip** (50%): left and right eyes are mirror images, so a flipped scan is still realistic.
+  - **Rotation** up to ±10°: patients' heads tilt slightly, and much more than that never happens in real scans.
+  - **Brightness and contrast** ±10%: scanners and clinics differ in brightness, and this may also weaken the 512×512 scanner shortcut.
+  - **No vertical flip:** an upside-down retina never occurs in a real OCT scan (vitreous on top, choroid at the bottom), so it would teach the model something impossible.
+
+</details>
+
+<details>
 <summary><strong>Labelling practice</strong></summary>
 
 Can I tell the classes apart by eye? 2 random scans per class, shuffled, from `runs/quiz/quiz.png`.
@@ -141,7 +224,7 @@ Anatomy reference (normal, DME, CNV, drusen with layers labelled):
 
 ![Labelled OCT anatomy](figures/practice/anatomy-labelled.png)
 
-### Round 1 (2026-10-23)
+### Round 1 · Fri 23 Oct 2026
 
 ![Round 1 scans](figures/practice/round1.png)
 
@@ -165,7 +248,7 @@ Lessons:
 - #2 is labelled DRUSEN but looks almost normal to me. Kermany labels are image-level and can be noisy; remember this for Step 7–8 (confident "mistakes" may be label errors).
 - #8 (DME) is low quality and cropped: real data has bad scans too.
 
-### Round 2 (2026-10-23)
+### Round 2 · Fri 23 Oct 2026
 
 ![Round 2 scans](figures/practice/round2.png)
 
@@ -191,7 +274,7 @@ Lessons:
 - #1 is DME but the scan is off-centre (the big dip on the left is the optic disc, not the fovea).
 - Drusen vs CNV is my weak spot now. Next round: look for *smooth & sharp* (drusen) vs *fuzzy, broken, with fluid* (CNV).
 
-### Round 3 (2026-10-23)
+### Round 3 · Fri 23 Oct 2026
 
 ![Round 3 scans](figures/practice/round3.png)
 
