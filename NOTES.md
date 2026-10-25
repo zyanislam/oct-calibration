@@ -7,6 +7,17 @@
 One entry a day: what I tried, what broke, what I learned. Newest first.
 
 <details open>
+<summary><b>Sun 25 Oct 2026</b></summary>
+
+- Started Step 4 on the `step4-pipeline` branch.
+- Loaded one scan with `decode_image`: `uint8`, 1 channel (grayscale), 496×1024.
+- Experiment 1: resize straight to 224×224 vs pad to a square first. Only matters for the wide scans (~38%): resize squashes 1536×496 to a third of its width, padding leaves only 32% of the image as retina.
+- Found that **all 8,659 scans at 512×512 are DME** (about 75% of DME scans), probably a different scanner or clinic. Possible shortcut: the model could learn the scanner instead of the fluid. Table: `results/step4_size_by_class.csv`. Check with Grad-CAM in Step 9.
+- Kaggle dataset usability score 5.0 → 8.13 (description, tags, sources, cover image).
+
+</details>
+
+<details>
 <summary><b>Sat 24 Oct 2026</b></summary>
 
 - Moved Step 2 to a Kaggle notebook (`zyanislam/oct-calibration`).
