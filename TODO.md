@@ -7,7 +7,7 @@ Things to come back to that aren't part of the current step.
 - [x] Add to the description: "Unmodified copy of the OCT part of Mendeley Data v3, re-uploaded for convenience. I am not the original author."
 - [ ] Remove the stray `.DS_Store` from the dataset root (publish a new version)
 - [x] Tags, subtitle, full description (provenance, contents, collection, citation), update frequency: done 2026-10-25 via the Kaggle tool
-- [ ] Cover image (website only: dataset → Settings → upload image, e.g. `figures/practice/anatomy-labelled.png`)
+- [ ] Cover image: upload `figures/kaggle-cover.png` (1600×800) on the website: dataset → Settings → Cover image
 - [ ] Decide for sure first (Kaggle may not let it go back to private), then Settings → Sharing → Public
 - [ ] Link it from the README's Data section
 
