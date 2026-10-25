@@ -269,6 +269,8 @@ A trained checkpoint, a training log you can plot, and a logits file. Published 
 
 Validation macro-F1 is above about 0.90, the best checkpoint is in Drive, and the logits file exists.
 
+> ✅ Done Mon 26 Oct 2026: validation macro-F1 0.939 (epoch 6), test 0.981. `best.pt` and the logits are Kaggle outputs (`runs/step5_baseline/` locally) rather than Drive. Details in `NOTES.md` (Step 5 · Baseline).
+
 
 ### Watch for
 

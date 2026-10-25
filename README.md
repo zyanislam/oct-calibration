@@ -89,6 +89,8 @@ The weakest class is DRUSEN (validation F1 0.86), mostly confused with CNV ([per
 | 10 | One extension, e.g. a deep ensemble | |
 | 11 | Write-up | |
 
+![Progress timeline](figures/timeline.png)
+
 The full plan is in [`docs/OCT-Build-Guide.md`](docs/OCT-Build-Guide.md), and the day-by-day log is in [`NOTES.md`](NOTES.md).
 
 ## Data

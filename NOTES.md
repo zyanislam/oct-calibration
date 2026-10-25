@@ -2,6 +2,12 @@
 
 **Code layout rule:** real code lives in `.py` files under `src/`. The notebook only clones the repo and calls those files.
 
+## Progress
+
+Steps 1–5 done in 5 days, on the build guide's plan. Step 5 took 1 day instead of 2 and caught up the day lost in Steps 1–4. At plan pace, the finish (Step 11) is the end of **Wed 4 Nov**.
+
+![Progress timeline](figures/timeline.png)
+
 ## Daily log
 
 One entry a day: what I tried, what broke, what I learned. Newest first.
@@ -15,6 +21,7 @@ One entry a day: what I tried, what broke, what I learned. Newest first.
 - On Kaggle (Tesla T4): first loss 1.621, overfit one batch → 0.0. Smoke test, 3 epochs on 10,000 scans: val macro-F1 **0.910**, test 0.975, 37 s per epoch. Fixed a PyTorch warning: with mixed precision the scaler can skip an optimiser step, so the scheduler now skips with it.
 - New notebook: turning Internet on restarts the session (lost `sys.path`), and a failed clone leaves Python caching "no module here". The setup cell now clears that cache and checks everything up front.
 - Full run as a saved version (data copy 63 s, then 8 epochs × ~262 s on a T4): best val macro-F1 **0.9388** at epoch 6, test 0.981. DRUSEN is the weakest class (val F1 0.86), confused mostly with CNV. Step 5 done.
+- Merged Step 5 into `main` (PR #2, squash). Updated the timeline: back on the plan, projected finish Wed 4 Nov.
 
 </details>
 
