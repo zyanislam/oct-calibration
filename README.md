@@ -30,8 +30,8 @@ It's the imaging half of a wider question I work on: how to show model uncertain
 | **Classifier** (Step 5) | ImageNet ResNet-18, fine-tuned: validation macro-F1 **0.939** |
 | **Test score** (Step 6) | macro-F1 **0.981 (95% CI 0.971–0.990)**, patient-level bootstrap |
 | **Main mistake** (Step 6) | DRUSEN read as CNV: 15 of the 19 test errors |
-| **Calibration** (Step 7, in progress) | Over-confident on validation; temperature scaling fixes validation but makes test *worse*, because test looks like a different acquisition |
-| **Coming** | Step 8 will open this README with: *"If the model answers X% of scans and flags the rest, it catches Y% of its own mistakes."* |
+| **Next** | Step 7: is the model's confidence honest (calibration)? |
+| **Then** | Step 8 will open this README with: *"If the model answers X% of scans and flags the rest, it catches Y% of its own mistakes."* |
 
 ## How the steps fit together
 
@@ -65,7 +65,7 @@ flowchart LR
 | **4 · Pipeline** | How do scans reach the network, fast and undistorted? | split (3), 256×256 copy (1) | Kaggle, CPU | [`src/dataset.py`](src/dataset.py), torchvision v2 | resize decision, augmentation, loaders at 359–489 images/s ([`results/step4_*`](results/)) | ✅ |
 | **5 · Baseline** | Can a standard CNN tell the four classes apart? | loaders (4) | Kaggle, Tesla T4 GPU, 36 min | [`src/model.py`](src/model.py), [`src/train.py`](src/train.py): ImageNet ResNet-18 | `best.pt` and validation/test logits (in `runs/`, not committed), training log | ✅ |
 | **6 · Evaluate** | How sure is the score, and what does it confuse? | logits (5); patient IDs (3) | Mac, CPU, 9 s | [`src/evaluate.py`](src/evaluate.py): patient-level bootstrap | intervals, per-class table, confusion matrices ([`results/step6_*`](results/)) | ✅ |
-| **7 · Calibrate** | Does "98% sure" mean 98%? | logits (5) | Mac, CPU | `src/calibrate.py`: ECE, reliability diagrams, temperature scaling | ECE before/after, T, diagrams | ⏳ |
+| **7 · Calibrate** | Does "98% sure" mean 98%? | logits (5) | Mac, CPU | ECE, reliability diagrams, temperature scaling | ECE before/after, T, diagrams | ⏳ |
 | **8 · Selective prediction** | If it answers only confident scans, how many mistakes does it catch? | calibrated probabilities (7) | Mac, CPU | risk–coverage curve | the headline sentence | |
 | **9 · Grad-CAM** | What does it look at, especially when confidently wrong? | `best.pt` (5), mistakes (6) | Kaggle or Mac | Grad-CAM | heatmaps; tests the DRUSEN/CNV and 512×512 hypotheses | |
 | **10 · Extension** | Does an ensemble give more honest confidence? | pipeline (4), training (5) | Kaggle GPU | e.g. a deep ensemble | new logits, rerun through 6–8 | |
@@ -108,13 +108,11 @@ The fix gives an identical split on scikit-learn 1.6, 1.7 and 1.9, and the split
 
 ![Resize vs pad on a 1024×496 CNV scan](figures/step4/resize_vs_pad_CNV-1032178-1.png)
 
-**5. The official test set looks like a different acquisition.** (Step 7) 94% of test scans are 1024×496, a size that is only 0.4% of the training and validation scans ([table](results/step7_size_by_split.csv)). Test scans are also easier in every class. So test scores and test calibration describe one particular population, not "OCT scans in general". It also means the 512×512 DME shortcut (finding 4) can't inflate test scores: test has no 512×512 scans. I only noticed this in Step 7, because image sizes had been compared by class but never by split.
-
 ### The pipeline
 
-**6. Loading the data was the first bottleneck, not the model.** (Step 4) Reading scans straight from Kaggle's input disk gave about 100 images/s, because the disk waits on the first read of every file. Resizing every scan once to 256×256 and copying them to local disk at the start of each session (about 65 s) raised it to **359–489 images/s**: about 3–4 minutes of loading per epoch instead of 15 ([numbers](results/step4_loader_speed.csv)).
+**5. Loading the data was the first bottleneck, not the model.** (Step 4) Reading scans straight from Kaggle's input disk gave about 100 images/s, because the disk waits on the first read of every file. Resizing every scan once to 256×256 and copying them to local disk at the start of each session (about 65 s) raised it to **359–489 images/s**: about 3–4 minutes of loading per epoch instead of 15 ([numbers](results/step4_loader_speed.csv)).
 
-**7. Almost every scan is grayscale.** (Step 4) 109,307 of 109,309 are single-channel; the two RGB exceptions are drusen test scans at one-off sizes ([table](results/step4_image_modes.csv)). The pipeline reads every scan as grayscale and copies it to the 3 channels the pretrained network expects.
+**6. Almost every scan is grayscale.** (Step 4) 109,307 of 109,309 are single-channel; the two RGB exceptions are drusen test scans at one-off sizes ([table](results/step4_image_modes.csv)). The pipeline reads every scan as grayscale and copies it to the 3 channels the pretrained network expects.
 
 ## Results by step
 
@@ -155,25 +153,10 @@ The weakest class is DRUSEN (validation F1 0.86), mostly confused with CNV ([per
 
 **The main confusion is DRUSEN read as CNV: 15 of the 19 test mistakes.** Likely because both raise the RPE, and what separates them is subtle (a hypothesis that Grad-CAM in Step 9 can test). Drusen are small, smooth, regular bumps under intact layers, while CNV is an irregular hump, often with fluid above it. It's the same distinction I got wrong in my first two labelling rounds.
 
-Four things the table doesn't show on its own:
+Three things the table doesn't show on its own:
 - **The balanced test set hides a second weak spot.** On validation (real class mix), 86 of 1,135 DME scans (7.6%) were called NORMAL; on test, none were ([confusion matrix](figures/step6/confusion_val.png)).
 - **DME recall has no bootstrap interval.** With zero misses, no resample contains one. By the rule of three, 0 misses in 250 still means recall is at least about 0.988 with 95% confidence.
-- **The intervals cover sampling noise within this test set only.** Test is almost all one image size that training barely contains (finding 5), so they don't say how the model does on another scanner.
 - **Precision and AUC get point values only.** Precision depends on class prevalence, which the balanced test set fixes at 25%; AUC is at its ceiling.
-
-</details>
-
-<details>
-<summary><b>Step 7 · Calibration</b> (in progress): the fix that breaks on test</summary>
-
-First numbers, before `src/calibrate.py` is written:
-
-| ECE (lower is better) | Before | After T = 1.25, fitted on validation |
-|---|---:|---:|
-| Validation | 0.013 | **0.006** |
-| Test | **0.007** | 0.013 |
-
-The model is over-confident on validation, so temperature scaling helps there. Test was already calibrated, so the same T makes it under-confident. The class mix doesn't explain it (reweighting validation to 25% per class moves T further away, to 1.48); the different test acquisition (finding 5) is the best-supported explanation so far. Details in [`NOTES.md`](NOTES.md).
 
 </details>
 
