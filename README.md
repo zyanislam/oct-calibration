@@ -60,6 +60,8 @@ The fix gives an identical split on scikit-learn 1.6, 1.7 and 1.9, and the split
 
 **6. Almost every scan is grayscale.** 109,307 of 109,309 are single-channel; the two RGB exceptions are drusen test scans at one-off sizes ([table](results/step4_image_modes.csv)). The pipeline reads every scan as grayscale and copies it to the 3 channels the pretrained network expects.
 
+**7. The official test set looks like a different acquisition.** 94% of test scans are 1024×496, a size that is only 0.4% of the training and validation scans ([table](results/step7_size_by_split.csv)). Test scans are also easier in every class. So test scores and test calibration describe one particular population, not "OCT scans in general". It also means the 512×512 DME shortcut (finding 4) can't inflate test scores: test has no 512×512 scans. I only noticed this in Step 7, because image sizes had been compared by class but never by split.
+
 ## Baseline (Step 5)
 
 ImageNet-pretrained ResNet-18, all layers fine-tuned, class-weighted loss, AdamW with cosine warm-up, mixed precision, 8 epochs, seed 42, one Tesla T4 (36 min).
@@ -91,11 +93,12 @@ The weakest class is DRUSEN (validation F1 0.86), mostly confused with CNV ([per
 
 ![Test confusion matrix](figures/step6/confusion_test.png)
 
-**The main confusion is DRUSEN read as CNV: 15 of the 19 test mistakes.** Both raise the RPE; what separates them is subtle. Drusen are small, smooth, regular bumps under intact layers, while CNV is an irregular hump, often with fluid above it. It's the same distinction I got wrong in my first two labelling rounds.
+**The main confusion is DRUSEN read as CNV: 15 of the 19 test mistakes.** Likely because both raise the RPE, and what separates them is subtle (a hypothesis that Grad-CAM in Step 9 can test). Drusen are small, smooth, regular bumps under intact layers, while CNV is an irregular hump, often with fluid above it. It's the same distinction I got wrong in my first two labelling rounds.
 
-Three things the table doesn't show on its own:
+Four things the table doesn't show on its own:
 - **The balanced test set hides a second weak spot.** On validation (real class mix), 86 of 1,135 DME scans (7.6%) were called NORMAL; on test, none were ([confusion matrix](figures/step6/confusion_val.png)).
 - **DME recall has no bootstrap interval.** With zero misses, no resample contains one. By the rule of three, 0 misses in 250 still means recall is at least about 0.988 with 95% confidence.
+- **The intervals cover sampling noise within this test set only.** Test is almost all one image size that training barely contains (finding 7), so they don't say how the model does on another scanner.
 - **Precision and AUC get point values only.** Precision depends on class prevalence, which the balanced test set fixes at 25%; AUC is at its ceiling.
 
 Reproduce: `from src.evaluate import evaluate_run; evaluate_run("runs/step5_baseline")` (CPU, about 9 s).
