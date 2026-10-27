@@ -13,6 +13,15 @@ Steps 1–5 done in 5 days, on the build guide's plan. Step 5 took 1 day instead
 One entry a day: what I tried, what broke, what I learned. Newest first.
 
 <details open>
+<summary><b>Tue 27 Oct 2026</b></summary>
+
+- Reran Step 5 as a clean notebook (Settings, Clone, Copy, Load, Checks, Smoke, Full run, Results with `RUN_*` switches). The saved run gave **bit-identical logits** to Monday's run: same seed, same code, same result.
+- Started Step 6 on the `step6-evaluation` branch. Read the Step 6 concepts page (per-class metrics, confusion matrix, AUC, bootstrap, image vs patient resampling) and made the four decisions (see Step 6).
+- `src/evaluate.py` written; runs locally on the saved logits in about 9 s. Test macro-F1 **0.981 (95% CI 0.971–0.990, by patient)**.
+
+</details>
+
+<details>
 <summary><b>Mon 26 Oct 2026</b></summary>
 
 - Started Step 5 on the `step5-baseline` branch. Read the Step 5 concepts page (training loop, transfer learning, loss, learning rate, imbalance, macro-F1, checkpoints, GPU budget, debugging recipe).
@@ -277,6 +286,51 @@ Reading the curves (check 7): validation is already strong after epoch 1, wobble
 Test (0.981) is well above val (0.939). The test set is balanced like the model's prior (weighted loss) and is the cleaner official set. Model choices are made on validation only.
 
 Logits are saved as `logits_val.pt` and `logits_test.pt` (logits, labels, rows). `rows` index the split's rows in `splits/oct_split_fold0.csv`, which gives the file path and patient. Outputs are in `runs/step5_baseline/` (gitignored, 45 MB checkpoint).
+
+</details>
+
+<details>
+<summary><strong>Step 6 · Evaluation</strong></summary>
+
+Metrics, bootstrap intervals and confusion matrices from the saved Step 5 logits (`src/evaluate.py`). No retraining and no GPU.
+
+### Decisions
+
+- **Bootstrap unit: both, patient-level is the headline.** Scans from one patient aren't independent, and patients have been the unit since the Step 3 split. The image-level interval is reported beside it for accuracy and macro-F1, to show how much the unit matters. 1,000 resamples, seed 42.
+- **Intervals on:** accuracy, macro-F1, per-class recall and per-class F1. **Point values only:** per-class precision (depends on class prevalence, and the test set is artificially balanced) and one-vs-rest AUC (at the ceiling, 0.997–1.0).
+- **Test is the headline, validation alongside** as point values. The balanced test set hides the real class mix and a second weak spot (DME→NORMAL on validation). Validation chose `best.pt`, so it's slightly optimistic.
+
+### Results (test, 1,000 scans, 635 patients)
+
+| Metric | Test | 95% CI by patient | 95% CI by image | Validation |
+|---|---:|---:|---:|---:|
+| Accuracy | 0.981 | 0.971–0.990 | 0.972–0.989 | 0.965 |
+| Macro-F1 | 0.981 | 0.971–0.990 | 0.972–0.989 | 0.939 |
+
+| Class | Precision | Recall (95% CI) | F1 (95% CI) | AUC |
+|---|---:|---:|---:|---:|
+| CNV | 0.943 | 0.992 (0.980–1.000) | 0.967 (0.947–0.984) | 0.999 |
+| DME | 0.992 | 1.000 (1.000–1.000) | 0.996 (0.989–1.000) | 1.000 |
+| DRUSEN | 0.992 | **0.940 (0.904–0.969)** | 0.965 (0.945–0.982) | 0.997 |
+| NORMAL | 1.000 | 0.992 (0.979–1.000) | 0.996 (0.989–1.000) | 1.000 |
+
+Tables: [`results/step6_metrics.csv`](results/step6_metrics.csv), [`results/step6_per_class.csv`](results/step6_per_class.csv).
+
+![Test confusion matrix](figures/step6/confusion_test.png)
+
+### The main confusion
+
+15 of the 19 test mistakes are DRUSEN called CNV. DRUSEN is most often mistaken for CNV because both raise the RPE; what separates them is subtle — drusen are small, smooth, regular bumps under intact layers, while CNV is an irregular hump often with fluid above it — the same distinction I got wrong in my first two labelling rounds.
+
+My longer notes on it: in both images the RPE has bumps, but they are distinguishable once you've seen a few. I made that mistake myself in the first two rounds and then looked very carefully. Cues: whether the retinal layers above stay intact (mostly yes in DRUSEN), and fluid pockets, which point to CNV.
+
+### What I learned
+
+- **Patient vs image barely differs here** (patient interval 1.10× wider) because most test patients have one scan (median 1, max 18). Worth saying, not assuming.
+- **DME recall's interval is 1.000–1.000.** With zero misses, no resample can produce one, so the bootstrap can't show uncertainty. A better statement is the "rule of three": 0 misses in 250 means the true miss rate is below about 3/250, so recall is at least about 0.988 with 95% confidence.
+- **Validation shows a weak spot test hides:** 86 of 1,135 DME scans (7.6%) called NORMAL, against 0 on test.
+
+![Validation confusion matrix](figures/step6/confusion_val.png)
 
 </details>
 
