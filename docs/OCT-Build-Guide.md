@@ -290,11 +290,11 @@ One accuracy number hides which diseases the model confuses and how much the num
 
 ### What you'll do
 
-- [ ] **On the test logits, compute** accuracy, macro-F1, per-class precision, recall and F1, and one-vs-rest AUC.
+- [x] **On the test logits, compute** accuracy, macro-F1, per-class precision, recall and F1, and one-vs-rest AUC.
 
-- [ ] **Plot a confusion matrix** and write down which two classes are confused most, and a guess why from what you saw in Step 2.
+- [x] **Plot a confusion matrix** and write down which two classes are confused most, and a guess why from what you saw in Step 2.
 
-- [ ] **Add 95% bootstrap confidence intervals** for accuracy and macro-F1: resample the test set with replacement 1,000 times and take the 2.5th and 97.5th percentiles.
+- [x] **Add 95% bootstrap confidence intervals** for accuracy and macro-F1: resample the test set with replacement 1,000 times and take the 2.5th and 97.5th percentiles.
 
 
 ### Learn first
@@ -317,6 +317,8 @@ A results table with intervals and one sentence on the main confusion. This beco
 ### Done when
 
 A results table with confidence intervals, a saved confusion matrix figure, and one sentence explaining the main confusion.
+
+> ✅ Done Tue 27 Oct 2026: test macro-F1 0.981 (95% CI 0.971–0.990, patient-level bootstrap; image-level 0.972–0.989). Main confusion: DRUSEN called CNV (15 of 19 test mistakes). Details in `NOTES.md` (Step 6 · Evaluation).
 
 
 ### Watch for

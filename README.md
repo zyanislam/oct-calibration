@@ -2,7 +2,7 @@
 
 **When a retinal-scan classifier says it's unsure, is it actually more likely to be wrong?**
 
-![Status](https://img.shields.io/badge/status-step%206%20of%2011-2f5bd3)
+![Status](https://img.shields.io/badge/status-step%207%20of%2011-2f5bd3)
 ![Data](https://img.shields.io/badge/data-Kermany%20OCT2017%20v3-555)
 ![Scans](https://img.shields.io/badge/scans-109%2C309-555)
 ![Licence](https://img.shields.io/badge/data%20licence-CC%20BY%204.0-555)
@@ -23,7 +23,7 @@ flowchart LR
 
 It's the imaging half of a wider question I work on: how to show model uncertainty to the people who rely on it. The other half is confidence cues on automatic captions for Deaf and hard-of-hearing viewers, where an unreliable "I'm unsure" flag is worse than none.
 
-> **Work in progress.** Steps 1–5 are done. The baseline ResNet-18 reaches **0.939 validation macro-F1** (0.981 on the test set); calibration and selective prediction come next. When Step 8 is done, this README will open with one sentence: *"If the model answers X% of scans and flags the rest, it catches Y% of its own mistakes."*
+> **Work in progress.** Steps 1–6 are done. The baseline ResNet-18 reaches **0.981 test macro-F1 (95% CI 0.971–0.990)** and 0.939 on validation; calibration and selective prediction come next. When Step 8 is done, this README will open with one sentence: *"If the model answers X% of scans and flags the rest, it catches Y% of its own mistakes."*
 
 ## The four classes
 
@@ -71,7 +71,34 @@ ImageNet-pretrained ResNet-18, all layers fine-tuned, class-weighted loss, AdamW
 
 ![Training curves](figures/step5/training_curves.png)
 
-The weakest class is DRUSEN (validation F1 0.86), mostly confused with CNV ([per class](results/step5_per_class.csv)). Confidence intervals come in Step 6.
+The weakest class is DRUSEN (validation F1 0.86), mostly confused with CNV ([per class](results/step5_per_class.csv)).
+
+## Evaluation (Step 6)
+
+95% intervals from 1,000 bootstrap resamples of the test set. The headline resamples **patients** (the 1,000 test scans come from 635 patients, and scans of one eye aren't independent); resampling images gives a slightly narrower interval.
+
+| Test set | Value | 95% CI, by patient | 95% CI, by image | Validation |
+|---|---:|---:|---:|---:|
+| Accuracy | 0.981 | 0.971–0.990 | 0.972–0.989 | 0.965 |
+| Macro-F1 | **0.981** | **0.971–0.990** | 0.972–0.989 | 0.939 |
+
+| Class | Recall (95% CI) | F1 (95% CI) | Precision | AUC |
+|---|---:|---:|---:|---:|
+| CNV | 0.992 (0.980–1.000) | 0.967 (0.947–0.984) | 0.943 | 0.999 |
+| DME | 1.000 | 0.996 (0.989–1.000) | 0.992 | 1.000 |
+| DRUSEN | **0.940 (0.904–0.969)** | 0.965 (0.945–0.982) | 0.992 | 0.997 |
+| NORMAL | 0.992 (0.979–1.000) | 0.996 (0.989–1.000) | 1.000 | 1.000 |
+
+![Test confusion matrix](figures/step6/confusion_test.png)
+
+**The main confusion is DRUSEN read as CNV: 15 of the 19 test mistakes.** Both raise the RPE; what separates them is subtle. Drusen are small, smooth, regular bumps under intact layers, while CNV is an irregular hump, often with fluid above it. It's the same distinction I got wrong in my first two labelling rounds.
+
+Three things the table doesn't show on its own:
+- **The balanced test set hides a second weak spot.** On validation (real class mix), 86 of 1,135 DME scans (7.6%) were called NORMAL; on test, none were ([confusion matrix](figures/step6/confusion_val.png)).
+- **DME recall has no bootstrap interval.** With zero misses, no resample contains one. By the rule of three, 0 misses in 250 still means recall is at least about 0.988 with 95% confidence.
+- **Precision and AUC get point values only.** Precision depends on class prevalence, which the balanced test set fixes at 25%; AUC is at its ceiling.
+
+Reproduce: `from src.evaluate import evaluate_run; evaluate_run("runs/step5_baseline")` (CPU, about 9 s).
 
 ## Progress
 
@@ -82,8 +109,8 @@ The weakest class is DRUSEN (validation F1 0.86), mostly confused with CNV ([per
 | 3 | Split by patient, with a leakage check | ✅ |
 | 4 | Data pipeline and augmentation | ✅ |
 | 5 | Baseline: ImageNet-pretrained ResNet-18 | ✅ |
-| 6 | Evaluation with bootstrap confidence intervals | ⏳ |
-| 7 | Calibration: ECE, reliability diagrams, temperature scaling | |
+| 6 | Evaluation with bootstrap confidence intervals | ✅ |
+| 7 | Calibration: ECE, reliability diagrams, temperature scaling | ⏳ |
 | 8 | Selective prediction: risk–coverage curve | |
 | 9 | Grad-CAM on confident mistakes | |
 | 10 | One extension, e.g. a deep ensemble | |
@@ -119,7 +146,8 @@ Validation is about 10% of the training *patients*, with class shares matched to
 ## Repository layout
 
 ```
-src/        project code: data.py (index + patient split), dataset.py (Dataset, transforms, loaders)
+src/        project code: data.py (index + patient split), dataset.py (Dataset, transforms, loaders),
+            model.py, train.py (Step 5), evaluate.py (Step 6)
 splits/     the saved patient split that every step from 3 on reads
 results/    small CSV tables of every result, one file per step
 figures/    figures used in NOTES.md and this README
@@ -146,7 +174,7 @@ loaders = make_loaders("path/to/OCT")          # reads splits/oct_split_fold0.cs
 images, labels, rows = next(iter(loaders["train"]))  # (64, 3, 224, 224), labels 0-3
 ```
 
-Training and evaluation commands will be added as Steps 5–8 land.
+Evaluation from saved logits: `src.evaluate.evaluate_run("runs/step5_baseline")`. Calibration and selective prediction commands will be added as Steps 7–8 land.
 
 ## References
 
