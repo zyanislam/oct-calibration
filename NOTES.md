@@ -13,6 +13,15 @@ Steps 1–5 done in 5 days, on the build guide's plan. Step 5 took 1 day instead
 One entry a day: what I tried, what broke, what I learned. Newest first.
 
 <details open>
+<summary><b>Sun 1 Nov 2026</b></summary>
+
+- Step 7 decisions: 15 equal-width bins as the headline with equal-mass as a check, NLL and Brier added, both splits reported, the class-mix test kept as a short note. 10, 15 and 16 bins all lead to the same conclusion.
+- `src/calibrate.py` written and run on the saved logits. T = 1.25: validation ECE 0.0133 → 0.0059, test ECE 0.0069 → 0.0128. Accuracy unchanged.
+- Bootstrapped the change by patient: both 95% intervals include zero, so the "fix breaks on test" story from Tue 27 Oct is weaker than I first said (see Step 7).
+
+</details>
+
+<details>
 <summary><b>Tue 27 Oct 2026</b></summary>
 
 - Reran Step 5 as a clean notebook (Settings, Clone, Copy, Load, Checks, Smoke, Full run, Results with `RUN_*` switches). The saved run gave **bit-identical logits** to Monday's run: same seed, same code, same result.
@@ -342,18 +351,35 @@ My longer notes on it: in both images the RPE has bumps, but they are distinguis
 </details>
 
 <details>
-<summary><strong>Step 7 · Calibration</strong> (in progress)</summary>
+<summary><strong>Step 7 · Calibration</strong></summary>
 
 ECE, reliability diagrams and temperature scaling, from the saved Step 5 logits. Concepts page: "Calibrating the OCT Baseline".
 
-### Preview (quick numbers before writing `src/calibrate.py`)
+### Results
 
-| | ECE before (T = 1) | ECE after T = 1.25 (fitted on val) |
-|---|---:|---:|
-| Validation | 0.0133 | **0.0059** (better) |
-| Test | **0.0069** | 0.0128 (about 2× worse) |
+`src/calibrate.py`, 15 equal-width bins as the headline, T fitted on validation only (T = **1.25**). Accuracy is identical before and after, and the code asserts that every prediction is unchanged ([table](results/step7_calibration.csv)).
 
-On validation the model is **over-confident** (confidence 0.978, accuracy 0.965), so T > 1 helps. On test it was **already calibrated** (confidence 0.981, accuracy 0.981), so the same T makes it under-confident. The T test itself would want is 1.05 (looked at for diagnosis only, never used).
+| | Accuracy | Mean confidence | ECE, width | ECE, mass | NLL | Brier |
+|---|---:|---:|---:|---:|---:|---:|
+| Validation, before | 0.965 | 0.978 | 0.0133 | 0.0127 | 0.1142 | 0.0544 |
+| Validation, T = 1.25 | 0.965 | 0.967 | **0.0059** | 0.0075 | 0.1088 | 0.0533 |
+| Test, before | 0.981 | 0.981 | **0.0069** | 0.0043 | 0.0682 | 0.0342 |
+| Test, T = 1.25 | 0.981 | 0.970 | 0.0128 | 0.0128 | 0.0703 | 0.0346 |
+
+![Reliability diagrams, before and after scaling](figures/step7/reliability.png)
+
+On validation the model is **over-confident**: mean confidence is above accuracy, and most reliability points sit below the diagonal. T > 1 brings them closer. On test it was **already close to calibrated**, and the same T makes it **under-confident**: most points move above the diagonal. Every measure agrees (both ECEs, NLL and Brier improve on validation and worsen on test), and so do 5, 10, 16, 20 and 30 bins, so this isn't a binning artefact. The T test itself would want is 1.05 (a diagnosis only, never used).
+
+Few scans sit in the lower bins (test: 48 of 1,000 below 0.9 confidence, some bins hold 4 scans), so individual low-confidence points are noisy.
+
+**How sure is the change?** Patient-level bootstrap of after minus before (1,000 resamples, seed 42; [table](results/step7_calibration_change.csv)):
+
+| Change after scaling | ECE, 95% CI | Resamples where ECE got worse | NLL, 95% CI |
+|---|---:|---:|---:|
+| Validation | −0.0120 to +0.0029 | 9% | −0.0157 to +0.0015 |
+| Test | −0.0058 to +0.0116 | 81% | −0.0044 to +0.0069 |
+
+**Both intervals include zero.** So the direction is consistent, but neither "scaling helped validation" nor "scaling hurt test" is established at the 95% level. The supported statement is weaker: there's no evidence that T = 1.25 helps test, and it probably doesn't. Validation having wide intervals despite 10,830 scans suggests a few patients with many scans carry much of the error. That's a hypothesis, not checked. Bootstrapped ECE is also biased upwards, so compare the differences, not the levels.
 
 ### Why: two explanations tested
 

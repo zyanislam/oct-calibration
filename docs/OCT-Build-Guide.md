@@ -338,15 +338,15 @@ A model is **calibrated** if, among scans where it says "90% sure", it is right 
 
 ### What you'll do
 
-- [ ] **Turn logits into probabilities** with softmax. Confidence is the highest probability for each scan.
+- [x] **Turn logits into probabilities** with softmax. Confidence is the highest probability for each scan.
 
-- [ ] **Implement expected calibration error (ECE) yourself** with 15 equal-width bins: in each bin, compare average confidence with accuracy, then average the gaps weighted by bin size.
+- [x] **Implement expected calibration error (ECE) yourself** with 15 equal-width bins: in each bin, compare average confidence with accuracy, then average the gaps weighted by bin size.
 
-- [ ] **Draw a reliability diagram:** confidence on the x-axis, accuracy per bin on the y-axis, with the diagonal for perfect calibration.
+- [x] **Draw a reliability diagram:** confidence on the x-axis, accuracy per bin on the y-axis, with the diagonal for perfect calibration.
 
-- [ ] **Implement temperature scaling:** learn one number T that divides all logits, fitted on **validation** logits by minimising negative log-likelihood.
+- [x] **Implement temperature scaling:** learn one number T that divides all logits, fitted on **validation** logits by minimising negative log-likelihood.
 
-- [ ] **Apply T to the test logits** and recompute ECE and the diagram. Confirm accuracy is unchanged.
+- [x] **Apply T to the test logits** and recompute ECE and the diagram. Confirm accuracy is unchanged.
 
 
 ### Learn first
@@ -370,6 +370,8 @@ Before and after reliability diagrams side by side, the ECE values and the fitte
 ### Done when
 
 You have both diagrams, both ECE values and T, plus a note in `NOTES.md` saying whether the model was over- or under-confident and how the diagram shows it.
+
+> ✅ Done Sun 1 Nov 2026: T = 1.25. Over-confident on validation (ECE 0.0133 → 0.0059); test ECE 0.0069 → 0.0128, with both changes' 95% intervals including zero. Accuracy unchanged. Details in `NOTES.md` (Step 7 · Calibration).
 
 
 ### Watch for
