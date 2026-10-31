@@ -16,5 +16,8 @@ Small, plain CSV tables of every result, so numbers can be checked or reused wit
 | `step5_per_class.csv` | Precision, recall and F1 per class for `best.pt` on val and test |
 | `step6_metrics.csv` | Test accuracy and macro-F1 with 95% bootstrap intervals (by patient, the headline, and by image), plus validation values |
 | `step6_per_class.csv` | Per class and split: precision, recall, F1 and one-vs-rest AUC; test recall and F1 with patient-level 95% intervals |
+| `step7_calibration.csv` | Accuracy, mean confidence, ECE (equal-width and equal-mass), NLL and Brier, before and after T, on validation and test |
+| `step7_calibration_change.csv` | Patient-level 95% bootstrap intervals on the change in ECE and NLL after scaling |
+| `step7_size_by_split.csv` | Scans per split, class and image size. 94% of test scans are 1024×496, a size that is 0.4% of train and validation |
 
 All Step 2 numbers come from `src.data.build_index` on Kermany OCT2017, Mendeley v3 (109,309 images).

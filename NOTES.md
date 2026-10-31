@@ -13,11 +13,24 @@ Steps 1–5 done in 5 days, on the build guide's plan. Step 5 took 1 day instead
 One entry a day: what I tried, what broke, what I learned. Newest first.
 
 <details open>
+<summary><b>Sun 1 Nov 2026</b></summary>
+
+- Step 7 decisions: 15 equal-width bins as the headline with equal-mass as a check, NLL and Brier added, both splits reported, the class-mix test kept as a short note. 10, 15 and 16 bins all lead to the same conclusion.
+- `src/calibrate.py` written and run on the saved logits. T = 1.25: validation ECE 0.0133 → 0.0059, test ECE 0.0069 → 0.0128. Accuracy unchanged.
+- Bootstrapped the change by patient: both 95% intervals include zero, so the "fix breaks on test" story from Tue 27 Oct is weaker than I first said (see Step 7).
+
+</details>
+
+<details>
 <summary><b>Tue 27 Oct 2026</b></summary>
 
 - Reran Step 5 as a clean notebook (Settings, Clone, Copy, Load, Checks, Smoke, Full run, Results with `RUN_*` switches). The saved run gave **bit-identical logits** to Monday's run: same seed, same code, same result.
 - Started Step 6 on the `step6-evaluation` branch. Read the Step 6 concepts page (per-class metrics, confusion matrix, AUC, bootstrap, image vs patient resampling) and made the four decisions (see Step 6).
 - `src/evaluate.py` written; runs locally on the saved logits in about 9 s. Test macro-F1 **0.981 (95% CI 0.971–0.990, by patient)**.
+- Merged Step 6 (PR #3). Started Step 7 on `step7-calibration` and read its concepts page.
+- **Surprise in the preview:** temperature scaling fitted on validation (T = 1.25) halves validation ECE but doubles test ECE. The first explanation (the class mix) was wrong: reweighting validation to 25% per class moves T to 1.48, the wrong way.
+- **New finding while checking the second explanation:** 94% of test scans are 1024×496, a size that is only 0.4% of train and validation. The test set is a different acquisition, not just a cleaner one. Image sizes had only ever been compared by class, never by split.
+- Went back over earlier notes and marked explanations that were stated as facts without a check (see Step 7 · What I got wrong).
 
 </details>
 
@@ -285,6 +298,8 @@ Reading the curves (check 7): validation is already strong after epoch 1, wobble
 
 Test (0.981) is well above val (0.939). The test set is balanced like the model's prior (weighted loss) and is the cleaner official set. Model choices are made on validation only.
 
+> **Correction (Tue 27 Oct):** this explanation was a guess, not a check. Step 7 found that 94% of test scans are 1024×496, a size that is only 0.4% of train and validation, so test is a different acquisition. Reweighting validation to the balanced mix doesn't make it behave like test, so the balance isn't the main reason either. See Step 7.
+
 Logits are saved as `logits_val.pt` and `logits_test.pt` (logits, labels, rows). `rows` index the split's rows in `splits/oct_split_fold0.csv`, which gives the file path and patient. Outputs are in `runs/step5_baseline/` (gitignored, 45 MB checkpoint).
 
 </details>
@@ -320,7 +335,7 @@ Tables: [`results/step6_metrics.csv`](results/step6_metrics.csv), [`results/step
 
 ### The main confusion
 
-15 of the 19 test mistakes are DRUSEN called CNV. DRUSEN is most often mistaken for CNV because both raise the RPE; what separates them is subtle — drusen are small, smooth, regular bumps under intact layers, while CNV is an irregular hump often with fluid above it — the same distinction I got wrong in my first two labelling rounds.
+15 of the 19 test mistakes are DRUSEN called CNV. DRUSEN is most often mistaken for CNV, likely because both raise the RPE (a hypothesis until Grad-CAM in Step 9); what separates them is subtle — drusen are small, smooth, regular bumps under intact layers, while CNV is an irregular hump often with fluid above it — the same distinction I got wrong in my first two labelling rounds.
 
 My longer notes on it: in both images the RPE has bumps, but they are distinguishable once you've seen a few. I made that mistake myself in the first two rounds and then looked very carefully. Cues: whether the retinal layers above stay intact (mostly yes in DRUSEN), and fluid pockets, which point to CNV.
 
@@ -329,8 +344,71 @@ My longer notes on it: in both images the RPE has bumps, but they are distinguis
 - **Patient vs image barely differs here** (patient interval 1.10× wider) because most test patients have one scan (median 1, max 18). Worth saying, not assuming.
 - **DME recall's interval is 1.000–1.000.** With zero misses, no resample can produce one, so the bootstrap can't show uncertainty. A better statement is the "rule of three": 0 misses in 250 means the true miss rate is below about 3/250, so recall is at least about 0.988 with 95% confidence.
 - **Validation shows a weak spot test hides:** 86 of 1,135 DME scans (7.6%) called NORMAL, against 0 on test.
+- **Added Tue 27 Oct:** the intervals cover sampling noise within *this* test population only. Test is 94% one image size that training barely has (Step 7), so they say nothing about scans from another scanner.
 
 ![Validation confusion matrix](figures/step6/confusion_val.png)
+
+</details>
+
+<details>
+<summary><strong>Step 7 · Calibration</strong></summary>
+
+ECE, reliability diagrams and temperature scaling, from the saved Step 5 logits. Concepts page: "Calibrating the OCT Baseline".
+
+### Results
+
+`src/calibrate.py`, 15 equal-width bins as the headline, T fitted on validation only (T = **1.25**). Accuracy is identical before and after, and the code asserts that every prediction is unchanged ([table](results/step7_calibration.csv)).
+
+| | Accuracy | Mean confidence | ECE, width | ECE, mass | NLL | Brier |
+|---|---:|---:|---:|---:|---:|---:|
+| Validation, before | 0.965 | 0.978 | 0.0133 | 0.0127 | 0.1142 | 0.0544 |
+| Validation, T = 1.25 | 0.965 | 0.967 | **0.0059** | 0.0075 | 0.1088 | 0.0533 |
+| Test, before | 0.981 | 0.981 | **0.0069** | 0.0043 | 0.0682 | 0.0342 |
+| Test, T = 1.25 | 0.981 | 0.970 | 0.0128 | 0.0128 | 0.0703 | 0.0346 |
+
+![Reliability diagrams, before and after scaling](figures/step7/reliability.png)
+
+On validation the model is **over-confident**: mean confidence is above accuracy, and most reliability points sit below the diagonal. T > 1 brings them closer. On test it was **already close to calibrated**, and the same T makes it **under-confident**: most points move above the diagonal. Every measure agrees (both ECEs, NLL and Brier improve on validation and worsen on test), and so do 5, 10, 16, 20 and 30 bins, so this isn't a binning artefact. The T test itself would want is 1.05 (a diagnosis only, never used).
+
+Few scans sit in the lower bins (test: 48 of 1,000 below 0.9 confidence, some bins hold 4 scans), so individual low-confidence points are noisy.
+
+**How sure is the change?** Patient-level bootstrap of after minus before (1,000 resamples, seed 42; [table](results/step7_calibration_change.csv)):
+
+| Change after scaling | ECE, 95% CI | Resamples where ECE got worse | NLL, 95% CI |
+|---|---:|---:|---:|
+| Validation | −0.0120 to +0.0029 | 9% | −0.0157 to +0.0015 |
+| Test | −0.0058 to +0.0116 | 81% | −0.0044 to +0.0069 |
+
+**Both intervals include zero.** So the direction is consistent, but neither "scaling helped validation" nor "scaling hurt test" is established at the 95% level. The supported statement is weaker: there's no evidence that T = 1.25 helps test, and it probably doesn't. Validation having wide intervals despite 10,830 scans suggests a few patients with many scans carry much of the error. That's a hypothesis, not checked. Bootstrapped ECE is also biased upwards, so compare the differences, not the levels.
+
+### Why: two explanations tested
+
+1. **The class mix (rejected).** Validation has the real mix, test is 25% per class. If that were the cause, refitting T on validation reweighted to 25% per class should move T towards 1.05. It moves to **1.48**, the wrong way.
+2. **A different acquisition (supported, not proven).** Image size by split ([table](results/step7_size_by_split.csv)):
+
+| Split | 1024×496 | 512×496 | 768×496 | 1536×496 | 512×512 | other |
+|---|---:|---:|---:|---:|---:|---:|
+| Train (97,479) | 0.4% | 53.5% | 27.5% | 10.6% | 8.1% | 0.0% |
+| Validation (10,830) | 0.4% | 54.4% | 27.6% | 10.6% | 7.0% | 0.0% |
+| Test (1,000) | **94.2%** | 0 | 0.4% | 5.2% | 0 | 0.2% |
+
+Test is almost entirely a size the model barely saw in training, and test scans are also easier in every class (DME 1.000 vs 0.904 on validation, DRUSEN 0.940 vs 0.891). The size alone doesn't make scans easy: the 44 validation scans at 1024×496 are *less* accurate (0.909). So the test set differs in acquisition **and** difficulty, and these two can't be separated yet.
+
+Two side results:
+- **No 512×512 scans in test**, so the DME-only 512×512 shortcut (Step 4) can't inflate test scores. On validation, 512×512 DME accuracy (0.904) matches other DME, so there's no sign of a free ride.
+- **The lesson for the project:** a calibration fitted on one population doesn't automatically transfer to another. A clinic's scans are more like validation than like a curated test set.
+
+### What I got wrong (and how it was caught)
+
+Numbers in these notes were computed and checked; some **explanations** of them were guesses written as facts.
+
+- **"Test differs because of the class mix"** (Step 7 preview): rejected by the reweighting test above.
+- **"Test is the cleaner official set"** (Step 5): incomplete; the image-size check shows a different acquisition. Corrected in Step 5.
+- **Image sizes were compared by class only** (Steps 2 and 4), never by split, so the test-set difference went unnoticed for five steps.
+- **"DRUSEN is confused with CNV because both raise the RPE"** (Step 6): a likely hypothesis, now worded as one; Grad-CAM in Step 9 can test it.
+- **Step 6 intervals** describe this test population only; now said explicitly.
+
+Rule from here: an explanation is marked as a hypothesis until a check backs it, and the check is written down.
 
 </details>
 
