@@ -19,5 +19,8 @@ Small, plain CSV tables of every result, so numbers can be checked or reused wit
 | `step7_calibration.csv` | Accuracy, mean confidence, ECE (equal-width and equal-mass), NLL and Brier, before and after T, on validation and test |
 | `step7_calibration_change.csv` | Patient-level 95% bootstrap intervals on the change in ECE and NLL after scaling |
 | `step7_size_by_split.csv` | Scans per split, class and image size. 94% of test scans are 1024×496, a size that is 0.4% of train and validation |
+| `step8_operating_points.csv` | Answered and flagged results at 95%, 90% and 80% target coverage, on validation and test, with patient-level intervals on test |
+| `step8_per_class.csv` | Share of each class flagged at each threshold |
+| `step8_score_comparison.csv` | AURC for confidence, margin and entropy |
 
 All Step 2 numbers come from `src.data.build_index` on Kermany OCT2017, Mendeley v3 (109,309 images).

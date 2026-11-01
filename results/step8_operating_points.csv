@@ -1,0 +1,7 @@
+target_coverage,threshold,split,coverage,accuracy_all,accuracy_answered,accuracy_flagged,flagged,errors,errors_caught,share_caught,coverage_low,coverage_high,accuracy_answered_low,accuracy_answered_high,share_caught_low,share_caught_high
+0.95,0.8148,val,0.95,0.9652,0.9833,0.6218,542,377,205,0.5438,,,,,,
+0.95,0.8148,test,0.958,0.981,0.9896,0.7857,42,19,9,0.4737,0.9434,0.9704,0.9819,0.9958,0.2352,0.7143
+0.9,0.922,val,0.9,0.9652,0.9903,0.7396,1083,377,282,0.748,,,,,,
+0.9,0.922,test,0.909,0.981,0.9934,0.8571,91,19,13,0.6842,0.8891,0.9296,0.9861,0.9989,0.4211,0.9231
+0.8,0.9702,val,0.8,0.9652,0.9941,0.8495,2166,377,326,0.8647,,,,,,
+0.8,0.9702,test,0.801,0.981,0.9975,0.9146,199,19,17,0.8947,0.7753,0.8263,0.9927,1.0,0.7222,1.0

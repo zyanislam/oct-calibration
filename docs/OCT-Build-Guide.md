@@ -391,13 +391,13 @@ This step answers the project's real question: **does low confidence point at th
 
 ### What you'll do
 
-- [ ] **Sort test scans by calibrated confidence**, highest first.
+- [x] **Sort test scans by calibrated confidence**, highest first.
 
-- [ ] **Plot a risk–coverage curve:** for each coverage (answering the top 10%, 20% … 100% of scans), the error rate among the scans answered. Compute the area under it (AURC).
+- [x] **Plot a risk–coverage curve:** for each coverage (answering the top 10%, 20% … 100% of scans), the error rate among the scans answered. Compute the area under it (AURC).
 
-- [ ] **Choose a confidence threshold on validation** so the model answers 90% of scans, then apply that threshold to test.
+- [x] **Choose a confidence threshold on validation** so the model answers 90% of scans, then apply that threshold to test.
 
-- [ ] **Report** accuracy on answered scans, accuracy on flagged scans, and the share of all test errors that fall in the flagged group.
+- [x] **Report** accuracy on answered scans, accuracy on flagged scans, and the share of all test errors that fall in the flagged group.
 
 
 ### Learn first
@@ -420,6 +420,8 @@ One sentence with your real numbers: *"If the model answers 90% of scans and fla
 ### Done when
 
 You can fill in the outcome sentence above with real numbers, and the risk–coverage plot is saved.
+
+> ✅ Done Mon 2 Nov 2026: answering 91% of test scans catches 68% of errors (13 of 19; 95% CI 42–92%), and accuracy on answered scans rises from 98.1% to 99.3%. Details in `NOTES.md` (Step 8 · Selective prediction).
 
 
 ### Watch for

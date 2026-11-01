@@ -1,0 +1,4 @@
+score,aurc_val,aurc_test
+confidence,0.0059,0.0024
+margin,0.0058,0.0023
+entropy,0.0059,0.0025
