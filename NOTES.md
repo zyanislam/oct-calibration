@@ -19,6 +19,10 @@ One entry a day: what I tried, what broke, what I learned. Newest first.
 - Decisions: 90% coverage as the headline with 80% and 95% for context, compare margin and entropy with confidence, patient-level intervals on the headline, report the flag rate per class.
 - `src/selective.py` written and run on the saved logits. Flagging about 9% of test scans catches **13 of 19 errors (68%, 95% CI 42–92%)**, and accuracy on answered scans rises from 98.1% to 99.3%.
 
+- Merged Step 8 (PR #5). Started Step 9 on `step9-gradcam` and read its concepts page.
+- `src/gradcam.py` written; it matches the `pytorch-grad-cam` library (correlation above 0.9999 on all 18 test panel scans). Four panels saved. All 6 confident test mistakes are drusen called CNV.
+- Read the panels: heat mostly on the retina, and on RPE bumps in the confident mistakes (see Step 9). No obvious size shortcut in the six 512×512 DME scans, though that can't be ruled out. Step 9 done.
+
 </details>
 
 <details>
@@ -458,6 +462,40 @@ Accuracy on all scans is 96.5% on validation and 98.1% on test. Tables: [operati
 - **Flagging falls mostly on DRUSEN:** at 90%, 23.2% of test DRUSEN and 35.5% of validation DRUSEN are flagged, against 2.4–6.0% and 4.6–15.4% for the other classes.
 - **Margin and entropy add nothing clear** (test AURC 0.0023 and 0.0025; validation 0.0058 and 0.0059), so plain confidence stays.
 - **Limit:** these numbers describe this data. Test looks like a different acquisition (Step 7), so they aren't a clinical guarantee.
+
+</details>
+
+<details>
+<summary><strong>Step 9 · Grad-CAM</strong></summary>
+
+Heatmaps for the predicted class, from the last ResNet block (`src/gradcam.py`), run on the 256×256 scans the model trained on. They show where the model looked, not why it was right.
+
+### Measured
+
+- The 256×256 copy reproduces the saved test predictions on all 1,000 scans.
+- Test has exactly 6 mistakes above the 0.922 threshold. **All 6 are drusen called CNV**, from 5 patients (`DRUSEN-6420074` appears twice).
+- Scans shown are listed in [`results/step9_scans_shown.csv`](results/step9_scans_shown.csv).
+
+### Panels
+
+![Confident and right](figures/step9/confident_right.png)
+![Confident but wrong](figures/step9/confident_wrong.png)
+![Least confident](figures/step9/least_confident.png)
+![DME at 512×512, validation](figures/step9/dme_512.png)
+
+### My reading
+
+**Confident and right:** The heat is on the retina in all six scans, and sits on the visible lesion where there is one, such as the drusen dome, the fluid pockets and the CNV hump. In the two NORMAL scans it sits around the central layers and the foveal dip, so there's no lesion to compare it with.
+
+**Confident but wrong:** The heat sits on the bumps along the RPE in all six scans, not on corners or background. So the model looked at a plausible area and still gave the wrong answer.
+
+**Least confident:** The heat is mostly on the retina but is less consistent. In one drusen scan it sits at the left edge, with no clear bump beneath it, and in one DME scan it spreads towards the top-right edge of the image.
+
+**DME at 512×512:** Where fluid is visible, the heat is on that area, with no heat on corners or borders. One scan (86.9%) has no fluid I can clearly see, but its heat is still inside the retinal area. This shows no obvious size shortcut in these six scans, but it can't rule one out, and three of them come from one patient.
+
+**The pattern in the confident mistakes:** all six have bumps along the RPE, often several and uneven, rather than one smooth dome, and the heat sits on them. My hypothesis is that uneven drusen look enough like the irregular CNV hump to mislead the model. Six scans can't prove this, and bumpiness alone doesn't explain it: the least-confident panel also has drusen with several bumps, and those weren't confident mistakes.
+
+**Caution:** the heat is nearly always a central blob, and the retina usually sits in the middle, so "on the retina" may be partly a centring effect. These maps can't tell the difference.
 
 </details>
 
