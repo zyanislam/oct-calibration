@@ -1,17 +1,25 @@
 # oct-calibration
 
-**When a retinal-scan classifier says it's unsure, is it actually more likely to be wrong?**
+**Can an eye-scan AI tell us when not to trust it?**
 
-![Status](https://img.shields.io/badge/status-step%208%20of%2011-2f5bd3)
+![Status](https://img.shields.io/badge/status-step%209%20of%2011-2f5bd3)
 ![Data](https://img.shields.io/badge/data-Kermany%20OCT2017%20v3-555)
 ![Scans](https://img.shields.io/badge/scans-109%2C309-555)
 ![Licence](https://img.shields.io/badge/data%20licence-CC%20BY%204.0-555)
 
 ![The four classes on OCT: normal, DME, CNV and drusen, with the retinal layers labelled](figures/practice/anatomy-labelled.png)
 
-Optical coherence tomography (OCT) gives a cross-section of the retina, and a deep network can sort these scans into four classes with high accuracy. Accuracy alone doesn't make a model safe to use, though. A clinic needs to know **which answers to trust**.
+An AI that's right 98% of the time is still wrong sometimes, and on its own you can't tell which answers are the wrong ones. This project trains a model to read retinal scans, then tests whether it can say "I'm not sure, a doctor should look at this one", and whether that warning means anything.
 
-This project builds that classifier and then asks the harder question. If the model answers only the scans it's confident about and sends the rest to an ophthalmologist, **does it catch its own mistakes?**
+**The main result: if a doctor checks the 9% of scans the AI is least sure about, about two-thirds of its mistakes get caught.**
+
+| Out of 1,000 test scans | Scans | Mistakes |
+|---|---:|---:|
+| AI answers everything | 1,000 | 19 |
+| AI answers only when confident | 909 | **6** |
+| Sent to a doctor | 91 | the other 13 are caught here |
+
+**Two honest limits.** The "two-thirds" rests on only 19 mistakes, so the true figure could be anywhere from about 40% to 90%. And this isn't ready for a clinic: the test scans look different from the training scans, so results on another hospital's scans could differ.
 
 ```mermaid
 flowchart LR
@@ -21,7 +29,9 @@ flowchart LR
     C -- low --> E[Flag for an<br/>ophthalmologist]
 ```
 
-It's the imaging half of a wider question I work on: how to show model uncertainty to the people who rely on it. The other half is confidence cues on automatic captions for Deaf and hard-of-hearing viewers, where an unreliable "I'm unsure" flag is worse than none.
+**In plain steps:** get about 109,000 labelled scans → keep each patient on one side of the test → train the model → measure it honestly → check whether its confidence can be trusted → let it pass on the scans it's unsure about.
+
+The technical detail is below. It's the imaging half of a wider question I work on: how to show model uncertainty to the people who rely on it. The other half is confidence cues on automatic captions for Deaf and hard-of-hearing viewers, where an unreliable "I'm unsure" flag is worse than none.
 
 ## At a glance
 
@@ -31,7 +41,7 @@ It's the imaging half of a wider question I work on: how to show model uncertain
 | **Test score** (Step 6) | macro-F1 **0.981 (95% CI 0.971–0.990)**, patient-level bootstrap |
 | **Main mistake** (Step 6) | DRUSEN read as CNV: 15 of the 19 test errors |
 | **Calibration** (Step 7) | Over-confident on validation (confidence 0.978, accuracy 0.965). T = 1.25 lowers validation ECE from 0.0133 to 0.0059, but test ECE rises from 0.0069 to 0.0128; both changes' 95% intervals include zero |
-| **Then** | Step 8 will open this README with: *"If the model answers X% of scans and flags the rest, it catches Y% of its own mistakes."* |
+| **Selective prediction** (Step 8) | Answering 91% of test scans catches 68% of errors (13 of 19; 95% CI 42–92%), and accuracy on answered scans rises from 98.1% to 99.3% |
 
 ## How the steps fit together
 
@@ -53,8 +63,8 @@ flowchart LR
     S6 & S8 & S9 --> S11["11 · Write-up"]
     classDef done fill:#147a4b,stroke:#147a4b,color:#fff
     classDef now fill:#2f5bd3,stroke:#2f5bd3,color:#fff
-    class S2,S3,S4,S5,S6,S7 done
-    class S8 now
+    class S2,S3,S4,S5,S6,S7,S8 done
+    class S9 now
 ```
 
 | Step | Question it answers | Needs (from) | Ran on | Uses | Produces | |
@@ -66,8 +76,8 @@ flowchart LR
 | **5 · Baseline** | Can a standard CNN tell the four classes apart? | loaders (4) | Kaggle, Tesla T4 GPU, 36 min | [`src/model.py`](src/model.py), [`src/train.py`](src/train.py): ImageNet ResNet-18 | `best.pt` and validation/test logits (in `runs/`, not committed), training log | ✅ |
 | **6 · Evaluate** | How sure is the score, and what does it confuse? | logits (5); patient IDs (3) | Mac, CPU, 9 s | [`src/evaluate.py`](src/evaluate.py): patient-level bootstrap | intervals, per-class table, confusion matrices ([`results/step6_*`](results/)) | ✅ |
 | **7 · Calibrate** | Does "98% sure" mean 98%? | logits (5); patient IDs (3) | Mac, CPU | [`src/calibrate.py`](src/calibrate.py): ECE, reliability diagrams, temperature scaling | T, before/after scores and diagrams ([`results/step7_*`](results/)) | ✅ |
-| **8 · Selective prediction** | If it answers only confident scans, how many mistakes does it catch? | calibrated probabilities (7) | Mac, CPU | risk–coverage curve | the headline sentence | ⏳ |
-| **9 · Grad-CAM** | What does it look at, especially when confidently wrong? | `best.pt` (5), mistakes (6) | Kaggle or Mac | Grad-CAM | heatmaps; tests the DRUSEN/CNV and 512×512 hypotheses | |
+| **8 · Selective prediction** | If it answers only confident scans, how many mistakes does it catch? | calibrated probabilities (7) | Mac, CPU | [`src/selective.py`](src/selective.py): risk–coverage curve, threshold chosen on validation | the headline result, plot and tables ([`results/step8_*`](results/)) | ✅ |
+| **9 · Grad-CAM** | What does it look at, especially when confidently wrong? | `best.pt` (5), mistakes (6) | Kaggle or Mac | Grad-CAM | heatmaps; tests the DRUSEN/CNV and 512×512 hypotheses | ⏳ |
 | **10 · Extension** | Does an ensemble give more honest confidence? | pipeline (4), training (5) | Kaggle GPU | e.g. a deep ensemble | new logits, rerun through 6–8 | |
 | **11 · Write-up** | What does it all add up to? | everything | – | – | this README in its final form | |
 
@@ -192,6 +202,25 @@ Both intervals include zero. The supported claim is that there's no evidence T =
 
 </details>
 
+<details open>
+<summary><b>Step 8 · Selective prediction</b>: low confidence does point at the mistakes</summary>
+
+Sort scans by confidence, answer the top ones and flag the rest. Each threshold is chosen on validation, then applied to test. Ranges are patient-level 95% intervals, with the threshold held fixed.
+
+| Target coverage | Test answered | Accuracy answered | Accuracy flagged | Errors caught, test | Errors caught, validation |
+|---:|---:|---:|---:|---:|---:|
+| 95% | 95.8% | 99.0% (98.2–99.6) | 78.6% | 9 of 19 (47%; 24–71) | 205 of 377 (54%) |
+| **90%** | **90.9%** | **99.3% (98.6–99.9)** | 85.7% | **13 of 19 (68%; 42–92)** | 282 of 377 (75%) |
+| 80% | 80.1% | 99.8% (99.3–100) | 91.5% | 17 of 19 (89%; 72–100) | 326 of 377 (86%) |
+
+![Risk–coverage curves](figures/step8/risk_coverage.png)
+
+- **Confidence ranks mistakes far better than chance:** test AURC is 0.0024, against 0.0190 for random flagging and 0.0002 for a perfect ranking.
+- **The review load is uneven:** at 90%, 23.2% of test DRUSEN scans are flagged, against 2.4–6.0% for the other classes ([table](results/step8_per_class.csv)).
+- **Margin and entropy give no clear improvement** over plain confidence ([table](results/step8_score_comparison.csv)).
+
+</details>
+
 ## Data
 
 **Kermany, Zhang & Goldbaum (2018), OCT2017, Mendeley Data v3** ([doi:10.17632/rscbjbr9sj.3](https://data.mendeley.com/datasets/rscbjbr9sj/3)), licensed CC BY 4.0. This is the release used in the [*Cell* paper](https://www.cell.com/cell/fulltext/S0092-8674(18)30154-5).
@@ -225,6 +254,7 @@ src/        project code
             train.py     training loop and checks       (Step 5)
             evaluate.py  metrics, bootstrap, confusion  (Step 6)
             calibrate.py ECE, temperature, reliability  (Step 7)
+            selective.py risk–coverage, thresholds          (Step 8)
 splits/     the saved patient split that every step from 3 on reads
 results/    small CSV tables of every result, one file per step (index in results/README.md)
 figures/    figures used in NOTES.md and this README, one folder per step
@@ -267,9 +297,12 @@ summary, per_class = evaluate_run("runs/step5_baseline")   # Step 6, CPU, about 
 from src.calibrate import calibrate_run
 
 T, table = calibrate_run("runs/step5_baseline", "figures/step7/reliability.png")   # Step 7, CPU
+
+from src.selective import selective_run
+
+tables = selective_run("runs/step5_baseline", "figures/step8/risk_coverage.png")   # Step 8, CPU
 ```
 
-Selective prediction commands will be added when Step 8 lands.
 
 ## References
 

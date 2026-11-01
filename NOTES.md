@@ -13,6 +13,15 @@ Steps 1–5 done in 5 days, on the build guide's plan. Step 5 took 1 day instead
 One entry a day: what I tried, what broke, what I learned. Newest first.
 
 <details open>
+<summary><b>Mon 2 Nov 2026</b></summary>
+
+- Merged Step 7 (PR #4). Started Step 8 on `step8-selective` and read its concepts page.
+- Decisions: 90% coverage as the headline with 80% and 95% for context, compare margin and entropy with confidence, patient-level intervals on the headline, report the flag rate per class.
+- `src/selective.py` written and run on the saved logits. Flagging about 9% of test scans catches **13 of 19 errors (68%, 95% CI 42–92%)**, and accuracy on answered scans rises from 98.1% to 99.3%.
+
+</details>
+
+<details>
 <summary><b>Sun 1 Nov 2026</b></summary>
 
 - Step 7 decisions: 15 equal-width bins as the headline with equal-mass as a check, NLL and Brier added, both splits reported, the class-mix test kept as a short note. 10, 15 and 16 bins all lead to the same conclusion.
@@ -409,6 +418,46 @@ Numbers in these notes were computed and checked; some **explanations** of them 
 - **Step 6 intervals** describe this test population only; now said explicitly.
 
 Rule from here: an explanation is marked as a hypothesis until a check backs it, and the check is written down.
+
+</details>
+
+<details>
+<summary><strong>Step 8 · Selective prediction</strong></summary>
+
+Sort scans by calibrated confidence, answer the top ones and flag the rest (`src/selective.py`). Thresholds come from validation only. Concepts page: "Selective Prediction".
+
+### Decisions
+
+- **Operating point:** 90% coverage is the headline; 80% and 95% show the trade-off. No target-accuracy threshold: 19 test errors can't check one reliably.
+- **Score:** plain confidence, compared with margin and entropy.
+- **Intervals:** patient-level on test (1,000 resamples, seed 42), threshold held fixed, so they cover test sampling noise only.
+- **Per-class flag rates reported**, because that's what a clinic would ask first.
+
+### Results
+
+| Target coverage (threshold) | Split | Answered | Accuracy answered | Accuracy flagged | Errors caught |
+|---|---|---:|---:|---:|---:|
+| 95% (0.815) | Validation | 95.0% | 98.3% | 62.2% | 205 of 377 (54%) |
+| | Test | 95.8% (94.3–97.0) | 99.0% (98.2–99.6) | 78.6% | 9 of 19 (47%; 24–71) |
+| **90% (0.922)** | Validation | 90.0% | 99.0% | 74.0% | 282 of 377 (75%) |
+| | **Test** | **90.9% (88.9–93.0)** | **99.3% (98.6–99.9)** | 85.7% | **13 of 19 (68%; 42–92)** |
+| 80% (0.970) | Validation | 80.0% | 99.4% | 85.0% | 326 of 377 (86%) |
+| | Test | 80.1% (77.5–82.6) | 99.8% (99.3–100) | 91.5% | 17 of 19 (89%; 72–100) |
+
+Accuracy on all scans is 96.5% on validation and 98.1% on test. Tables: [operating points](results/step8_operating_points.csv), [per class](results/step8_per_class.csv), [scores](results/step8_score_comparison.csv).
+
+![Risk–coverage curves](figures/step8/risk_coverage.png)
+
+**The outcome sentence:** if the model answers 91% of test scans and flags the rest, it catches 68% of its own mistakes (13 of 19; 95% CI 42–92%), and its accuracy on what it answers rises from 98.1% to 99.3%.
+
+### What I learned
+
+- **Low confidence does point at the mistakes.** Test AURC is 0.0024, against 0.0190 for random flagging and 0.0002 for a perfect ranking. Flagged scans are far less accurate than answered ones on both splits.
+- **The threshold transferred well.** Set for 90% on validation, it answers 90.9% of test.
+- **Validation is the steadier estimate** (377 errors), but it chose the threshold. Test is untouched but has only 19 errors. Both land in a similar place at 90%: 75% and 68%.
+- **Flagging falls mostly on DRUSEN:** at 90%, 23.2% of test DRUSEN and 35.5% of validation DRUSEN are flagged, against 2.4–6.0% and 4.6–15.4% for the other classes.
+- **Margin and entropy add nothing clear** (test AURC 0.0023 and 0.0025; validation 0.0058 and 0.0059), so plain confidence stays.
+- **Limit:** these numbers describe this data. Test looks like a different acquisition (Step 7), so they aren't a clinical guarantee.
 
 </details>
 
