@@ -441,11 +441,11 @@ Numbers say *how often* the model is wrong; heatmaps hint at *why*. If confident
 
 ### What you'll do
 
-- [ ] **Implement Grad-CAM yourself** with forward and backward hooks on the last ResNet block (`layer4`). It's about 25 lines once you understand the paper's section 3.
+- [x] **Implement Grad-CAM yourself** with forward and backward hooks on the last ResNet block (`layer4`). It's about 25 lines once you understand the paper's section 3.
 
-- [ ] **Make three panels of 6 scans each:** confident and correct, confident but wrong, and least confident.
+- [x] **Make three panels of 6 scans each:** confident and correct, confident but wrong, and least confident.
 
-- [ ] **Write two sentences per panel** in `NOTES.md`: is the heat on the retinal layers and the lesion, or on artefacts?
+- [x] **Write two sentences per panel** in `NOTES.md`: is the heat on the retinal layers and the lesion, or on artefacts?
 
 
 ### Learn first
@@ -469,6 +469,8 @@ Three saved figures and a named pattern shared by the confident mistakes, for ex
 ### Done when
 
 Three panels are saved and you can name one pattern the confident mistakes share.
+
+> ✅ Done Mon 2 Nov 2026: all 6 confident test mistakes are drusen called CNV, with heat on uneven RPE bumps. Checked against `pytorch-grad-cam`. Details in `NOTES.md` (Step 9 · Grad-CAM).
 
 
 ### Watch for

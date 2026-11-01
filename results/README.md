@@ -22,5 +22,6 @@ Small, plain CSV tables of every result, so numbers can be checked or reused wit
 | `step8_operating_points.csv` | Answered and flagged results at 95%, 90% and 80% target coverage, on validation and test, with patient-level intervals on test |
 | `step8_per_class.csv` | Share of each class flagged at each threshold |
 | `step8_score_comparison.csv` | AURC for confidence, margin and entropy |
+| `step9_scans_shown.csv` | Every scan in the Grad-CAM panels, with true class, prediction and confidence |
 
 All Step 2 numbers come from `src.data.build_index` on Kermany OCT2017, Mendeley v3 (109,309 images).
