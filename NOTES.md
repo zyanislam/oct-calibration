@@ -13,6 +13,16 @@ Steps 1–10 done in 12 days, on the build guide's plan. At plan pace, the finis
 One entry a day: what I tried, what broke, what I learned. Newest first.
 
 <details open>
+<summary><b>Tue 3 Nov 2026</b></summary>
+
+- Merged Step 10 (PR #7). Started Step 11 on `step11-writeup`.
+- Claude reordered the README to the guide's order and drafted "What I learned" from these notes, for me to reword. The first screen now has the result and one new figure with the two test panels.
+- Tested a clean copy of the repo's files in a new environment: Steps 6, 7, 8 and 10 reproduce every number in `results/` that was compared. It needed two fixes: a `requirements.txt` that includes `tqdm`, and `logits/`, the saved outputs of all five models (1.9 MB), because `runs/` isn't committed.
+- Still to do: a real clone from GitHub, a friend following the README, CV and email line, and making the Kaggle dataset and notebook public.
+
+</details>
+
+<details>
 <summary><b>Mon 2 Nov 2026</b></summary>
 
 - Merged Step 7 (PR #4). Started Step 8 on `step8-selective` and read its concepts page.
@@ -549,6 +559,34 @@ Patient-level 95% range for team + T minus seed 42 + T:
 `src/ensemble.py` writes `results/step10_*.csv` and `figures/step10/risk_coverage.png`.
 
 ![Risk-coverage: temperature against team plus temperature](figures/step10/risk_coverage.png)
+
+</details>
+
+<details>
+<summary><strong>Step 11 · Write-up</strong></summary>
+
+The README now follows the guide's order: result and figures, results table, method, Grad-CAM, limitations, commands, what I learned. Step-by-step detail moved lower and is collapsed.
+
+### Decisions (Claude's, for me to check)
+
+- **Headline figure:** one new figure with both panels on test (`headline_figure` in `src/selective.py`), because the Step 7 and Step 8 figures have different shapes and can't sit side by side.
+- **Saved outputs committed:** `logits/` holds each model's validation and test logits, so anyone can rerun Steps 6, 7, 8 and 10 with no data or GPU. Checkpoints stay out (45 MB each).
+- **Guide wording changed:** the guide says "scans from one hospital system". A quick search couldn't confirm where the scans were collected, so the README says only "one public dataset".
+
+### Fresh-copy test
+
+Clean copy of the tracked files, new Python 3.12 environment, `pip install -r requirements.txt`.
+
+| Check | Result |
+|---|---|
+| Steps 6, 7, 8 and 10 from `logits/` | 11 seconds; numeric columns in all 11 tables match `results/` exactly |
+| Step 2 index on the local 256×256 scans | 109,309 scans |
+| Step 3 split | same paths and sides as `splits/oct_split_fold0.csv` |
+| Step 4 loader | test batch `(64, 3, 224, 224)` |
+| Step 9 with the local `best.pt` | 18 scans, all among those in `results/step9_scans_shown.csv` |
+| Step 5 full training | not rerun (needs a GPU); the clean Kaggle rerun on Tue 27 Oct gave bit-identical logits |
+
+**Found by the test:** `tqdm` was missing from the requirements, and nothing could run from a clone because `runs/` isn't committed. Both fixed.
 
 </details>
 

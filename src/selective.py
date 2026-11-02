@@ -6,6 +6,7 @@ aurc            area under that curve
 report          answered and flagged results at one threshold
 bootstrap_report  patient-level intervals on that report, threshold held fixed
 selective_run   the full Step 8 tables and plot for one run folder
+headline_figure the two test panels at the top of the README (Step 11)
 
 Thresholds always come from validation. Runs on CPU from logits_{val,test}.pt.
 """
@@ -18,7 +19,7 @@ import numpy as np
 import pandas as pd
 import torch
 
-from src.calibrate import fit_temperature
+from src.calibrate import fit_temperature, reliability_diagram
 from src.data import CLASSES
 from src.evaluate import load_split
 
@@ -121,3 +122,32 @@ def selective_run(run_dir, figure_path=None, coverages=(0.95, 0.90, 0.80)) -> di
 
     return {"operating_points": pd.DataFrame(points).round(4), "per_class": pd.DataFrame(per_class).round(4),
             "score_comparison": comparison.round(4)}
+
+
+def headline_figure(run_dir, figure_path, coverage: float = 0.90):
+    """The README's two test panels: reliability after T, and risk-coverage with the 90% threshold marked."""
+    run_dir = Path(run_dir)
+    val, test = (torch.load(run_dir / f"logits_{s}.pt") for s in ("val", "test"))
+    T = fit_temperature(val["logits"], val["labels"])
+    threshold = np.quantile((val["logits"].double() / T).softmax(1).max(1).values.numpy(), 1 - coverage)
+    probs = (test["logits"].double() / T).softmax(1).numpy()
+    y = test["labels"].numpy()
+    conf, wrong = probs.max(1), probs.argmax(1) != y
+
+    fig, (left, right) = plt.subplots(1, 2, figsize=(11, 4.8))
+    reliability_diagram(left, probs, y, f"Is its confidence honest? (test, T = {T:.2f})")
+    risk = risk_coverage(conf, wrong)
+    covered = np.arange(1, len(risk) + 1) / len(risk)
+    right.axhline(wrong.mean(), ls="--", color="gray", lw=1.5, label="random flagging")
+    right.plot(covered, risk, color="#2f5bd3", lw=2, label="flag by confidence")
+    point = (conf >= threshold).mean()
+    right.scatter([point], [wrong[conf >= threshold].mean()], color="crimson", zorder=3, s=50,
+                  label=f"answers {point:.1%}, makes {int(wrong[conf >= threshold].sum())} mistakes")
+    right.set(xlim=(0.5, 1.01), ylim=(0, wrong.mean() * 1.5), xlabel="coverage (share of scans answered)",
+              ylabel="risk (error rate when answered)", title="Does flagging remove mistakes? (test)")
+    right.grid(alpha=0.25)
+    right.legend(loc="upper left")
+    fig.tight_layout()
+    Path(figure_path).parent.mkdir(parents=True, exist_ok=True)
+    fig.savefig(figure_path, dpi=150, bbox_inches="tight")
+    return fig

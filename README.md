@@ -7,11 +7,9 @@
 ![Scans](https://img.shields.io/badge/scans-109%2C309-555)
 ![Licence](https://img.shields.io/badge/data%20licence-CC%20BY%204.0-555)
 
-![The four classes on OCT: normal, DME, CNV and drusen, with the retinal layers labelled](figures/practice/anatomy-labelled.png)
-
 An AI that's right 98% of the time is still wrong sometimes, and on its own you can't tell which answers are the wrong ones. This project trains a model to read retinal scans, then tests whether it can say "I'm not sure, a doctor should look at this one", and whether that warning means anything.
 
-**The main result: if a doctor checks the 9% of scans the AI is least sure about, about two-thirds of its mistakes get caught.**
+**The main result: if a doctor checks the 9% of scans the AI is least sure about, about two-thirds of its mistakes get caught.** In numbers: if the model answers 91% of test scans and flags the rest, it catches 68% of its own mistakes (13 of 19; 95% CI 42–92%), and its accuracy on what it answers rises from 98.1% to 99.3%.
 
 | Out of 1,000 test scans | Scans | Mistakes |
 |---|---:|---:|
@@ -19,7 +17,34 @@ An AI that's right 98% of the time is still wrong sometimes, and on its own you 
 | AI answers only when confident | 909 | **6** |
 | Sent to a doctor | 91 | the other 13 are caught here |
 
-**Three honest limits.** The "two-thirds" rests on only 19 mistakes, so the true figure could be anywhere from about 40% to 90%. Training the same model again with a different random seed gave between 15 and 31 test mistakes, so the 19 is partly luck. And this isn't ready for a clinic: the test scans look different from the training scans, so results on another hospital's scans could differ.
+![Left: reliability diagram on the test set. Right: risk–coverage curve on the test set](figures/step11/headline.png)
+
+*Left: dots on the diagonal would mean "90% sure" is right 90% of the time. On test, dots sit above it, so the scaled model is a little under-confident. Right: flagging the least confident scans lowers the error rate on what's left, far faster than flagging at random.*
+
+**Three honest limits.** The "two-thirds" rests on only 19 mistakes, so the true figure could be anywhere from about 40% to 90%. Training the same model again with a different random seed gave between 15 and 31 test mistakes, so the 19 is partly luck. And this isn't ready for a clinic: the test scans look different from the training scans, so results on another hospital's scans could differ. [All limitations](#limitations).
+
+This is the imaging half of a wider question I work on: how to show model uncertainty to the people who rely on it. The other half is confidence cues on automatic captions for Deaf and hard-of-hearing viewers, where an unreliable "I'm unsure" flag is worse than none.
+
+## Results
+
+Test ranges are 95% intervals from resampling whole patients. Thresholds and temperature come from validation only.
+
+| | Test (1,000 scans) | 95% interval | Validation (10,830 scans) |
+|---|---:|---:|---:|
+| Macro-F1 | **0.981** | 0.971–0.990 | 0.939 |
+| Accuracy | 0.981 | 0.971–0.990 | 0.965 |
+| DRUSEN recall, the weakest class | 0.940 | 0.904–0.969 | 0.891 |
+| Scans answered, at the 90% threshold | 90.9% | 88.9–93.0% | 90.0% |
+| Accuracy on answered scans | **99.3%** | 98.6–99.9% | 99.0% |
+| Mistakes caught by flagging | **13 of 19 (68%)** | 42–92% | 282 of 377 (75%) |
+| AURC (random flagging / perfect ranking) | 0.0024 (0.0190 / 0.0002) | | 0.0059 |
+| ECE before → after temperature scaling | 0.0069 → 0.0128 | change −0.0058 to +0.0116 | 0.0133 → 0.0059 (change −0.0120 to +0.0029) |
+
+**Temperature scaling doesn't clearly help here.** It improves validation and worsens test, and both ranges include no change. So the supported claim is that there's no evidence T = 1.25 helps on test. Flagging works because confidence *ranks* mistakes well, and scaling never changes that ranking much (AURC 0.0023 before, 0.0024 after).
+
+**A team of five models doesn't change the conclusion.** It makes 19 test mistakes too, and all test ranges include no change. On validation the gains are small but clear. All 7 confident mistakes across the two methods are drusen called CNV and are made by all five models, so one temperature number stays the main method ([details](#results-by-step)).
+
+## Method
 
 ```mermaid
 flowchart LR
@@ -29,65 +54,105 @@ flowchart LR
     C -- low --> E[Flag for an<br/>ophthalmologist]
 ```
 
-**In plain steps:** get about 109,000 labelled scans → keep each patient on one side of the test → train the model → measure it honestly → check whether its confidence can be trusted → let it pass on the scans it's unsure about.
+- **Data:** Kermany OCT2017, Mendeley v3: 109,309 scans of four classes (CNV, DME, DRUSEN, NORMAL), with the official balanced test set of 1,000 scans.
+- **Patient split:** each patient is on one side only, checked by an `assert`, because one patient can have hundreds of near-identical scans. The split is [saved as a file](splits/oct_split_fold0.csv) that every step reads.
+- **Model:** ImageNet-pretrained ResNet-18, all layers fine-tuned, class-weighted loss, 8 epochs on one Kaggle GPU, best epoch chosen on validation macro-F1.
+- **Calibration:** one temperature number, fitted on validation, divides the model's raw scores. It changes confidence and never the predicted class, and the code asserts this.
+- **Selective prediction:** answer scans at or above a confidence threshold, set on validation for 90% coverage, and flag the rest.
+- **Comparison:** a deep ensemble of 5 seeds, against the single model with temperature.
 
-The technical detail is below. It's the imaging half of a wider question I work on: how to show model uncertainty to the people who rely on it. The other half is confidence cues on automatic captions for Deaf and hard-of-hearing viewers, where an unreliable "I'm unsure" flag is worse than none.
+## Where the model looks
 
-## At a glance
+Heatmaps show which regions most influenced an answer. They show where the model looked, not why it was right.
 
-| | Result so far |
-|---|---|
-| **Classifier** (Step 5) | ImageNet ResNet-18, fine-tuned: validation macro-F1 **0.939** |
-| **Test score** (Step 6) | macro-F1 **0.981 (95% CI 0.971–0.990)**, patient-level bootstrap |
-| **Main mistake** (Step 6) | DRUSEN read as CNV: 15 of the 19 test errors |
-| **Calibration** (Step 7) | Over-confident on validation (confidence 0.978, accuracy 0.965). T = 1.25 lowers validation ECE from 0.0133 to 0.0059, but test ECE rises from 0.0069 to 0.0128; both changes' 95% intervals include zero |
-| **Where it looks** (Step 9) | All 6 confident test mistakes are drusen called CNV. Heat is mostly on the retina; no obvious size shortcut in the scans checked, though that isn't ruled out |
-| **Selective prediction** (Step 8) | Answering 91% of test scans catches 68% of errors (13 of 19; 95% CI 42–92%), and accuracy on answered scans rises from 98.1% to 99.3% |
-| **Team of 5 models** (Step 10) | Small, clear gains on validation; on test, still 19 mistakes and all ranges include no change. Temperature scaling stays the main method. The seed alone moves a single model between 15 and 31 test mistakes |
+![All 6 confident test mistakes, with heatmaps](figures/step9/confident_wrong.png)
 
-## How the steps fit together
+- **Measured:** test has exactly 6 mistakes above the confidence threshold. All 6 are drusen called CNV, from 5 patients. A doctor wouldn't be shown these.
+- **Confident mistakes:** all have bumps along the RPE, often several and uneven, with heat on them. A hypothesis is that uneven drusen resemble the irregular CNV hump. Six scans can't prove it, and other bumpy drusen weren't confident mistakes.
+- **Size shortcut:** in [six 512×512 DME scans](figures/step9/dme_512.png), heat is on fluid where it's visible, not on corners or borders. That shows no obvious shortcut there but can't rule one out.
+- **Other panels:** [confident and right](figures/step9/confident_right.png), [least confident](figures/step9/least_confident.png). Scans shown are [listed here](results/step9_scans_shown.csv).
+- **Caution:** the heat is nearly always a central blob on coarse 7×7 maps, and the retina usually sits in the middle, so "on the retina" may be partly a centring effect.
 
-Each step answers one question and hands a file to the next. Training happens once, on a Kaggle GPU (Step 5). Every analysis after it reads the saved logits, so Steps 6–8 run on a laptop in seconds, with no retraining.
+## Limitations
 
-```mermaid
-flowchart LR
-    D[("Kermany v3<br/>Mendeley")] --> S2["2 · Explore"]
-    S2 -->|index| S3["3 · Patient split"]
-    S3 -->|split CSV| S4["4 · Pipeline"]
-    S4 -->|loaders| S5["5 · Train ResNet-18<br/>Kaggle GPU"]
-    S5 -->|logits| S6["6 · Evaluate"]
-    S5 -->|logits| S7["7 · Calibrate"]
-    S7 -->|temperature T| S8["8 · Selective prediction"]
-    S5 -->|best.pt| S9["9 · Grad-CAM"]
-    S6 -->|mistakes| S9
-    S4 --> S10["10 · Ensemble"]
-    S10 -->|logits| S7
-    S6 & S8 & S9 --> S11["11 · Write-up"]
-    classDef done fill:#147a4b,stroke:#147a4b,color:#fff
-    classDef now fill:#2f5bd3,stroke:#2f5bd3,color:#fff
-    class S2,S3,S4,S5,S6,S7,S8,S9,S10 done
-    class S11 now
+- **One public dataset.** There's no outside test set, and nothing here was checked on another hospital's scans.
+- **The test set looks like a different acquisition.** 94% of test scans are one image size that is only 0.4% of training and validation scans ([finding 5](#the-data-and-how-to-test-fairly)), so test results describe that population, not OCT scans in general.
+- **Few test mistakes.** Every test result about mistakes rests on 19 of them, which is why the ranges are wide.
+- **One seed is one sample.** Other seeds made 15 to 31 test mistakes, and the intervals above hold the model fixed, so they leave this out.
+- **Image-level labels.** Each scan has one label with no lesion marked, and some labels may be wrong. I didn't check them.
+- **Heatmaps aren't explanations.** Grad-CAM shows where the model looked, and a shortcut through image size isn't ruled out.
+- **No clinical validation.** Nobody has tested this with doctors or patients, and 23% of test DRUSEN scans get flagged at the 90% threshold, so the review load would be uneven.
+
+## Reproducing
+
+```bash
+git clone https://github.com/zyanislam/oct-calibration.git
+cd oct-calibration
+python3.12 -m venv .venv
+.venv/bin/pip install -r requirements.txt
 ```
 
-| Step | Question it answers | Needs (from) | Ran on | Uses | Produces | |
-|---|---|---|---|---|---|:---:|
-| **1 · Workspace** | Where does everything live, reproducibly? | – | Mac, GitHub, Kaggle | git, Kaggle CLI | this repo; the v3 data and a 256×256 copy as Kaggle datasets | ✅ |
-| **2 · Explore** | What's in the data, and what could mislead a model? | Kermany v3 | Kaggle notebook, CPU | [`src/data.py`](src/data.py) `build_index` | counts, patients, image sizes ([`results/step2_*`](results/)), sample grids | ✅ |
-| **3 · Split** | How do we test without the model recognising patients? | index (2) | Kaggle, CPU; checked on Mac | `patient_split`: `StratifiedGroupKFold` by patient, leakage `assert` | [`splits/oct_split_fold0.csv`](splits/oct_split_fold0.csv), read by every later step | ✅ |
-| **4 · Pipeline** | How do scans reach the network, fast and undistorted? | split (3), 256×256 copy (1) | Kaggle, CPU | [`src/dataset.py`](src/dataset.py), torchvision v2 | resize decision, augmentation, loaders at 359–489 images/s ([`results/step4_*`](results/)) | ✅ |
-| **5 · Baseline** | Can a standard CNN tell the four classes apart? | loaders (4) | Kaggle, Tesla T4 GPU, 36 min | [`src/model.py`](src/model.py), [`src/train.py`](src/train.py): ImageNet ResNet-18 | `best.pt` and validation/test logits (in `runs/`, not committed), training log | ✅ |
-| **6 · Evaluate** | How sure is the score, and what does it confuse? | logits (5); patient IDs (3) | Mac, CPU, 9 s | [`src/evaluate.py`](src/evaluate.py): patient-level bootstrap | intervals, per-class table, confusion matrices ([`results/step6_*`](results/)) | ✅ |
-| **7 · Calibrate** | Does "98% sure" mean 98%? | logits (5); patient IDs (3) | Mac, CPU | [`src/calibrate.py`](src/calibrate.py): ECE, reliability diagrams, temperature scaling | T, before/after scores and diagrams ([`results/step7_*`](results/)) | ✅ |
-| **8 · Selective prediction** | If it answers only confident scans, how many mistakes does it catch? | calibrated probabilities (7) | Mac, CPU | [`src/selective.py`](src/selective.py): risk–coverage curve, threshold chosen on validation | the headline result, plot and tables ([`results/step8_*`](results/)) | ✅ |
-| **9 · Grad-CAM** | What does it look at, especially when confidently wrong? | `best.pt` (5), mistakes (6) | Kaggle or Mac | [`src/gradcam.py`](src/gradcam.py): Grad-CAM, checked against `pytorch-grad-cam` | heatmap panels ([`figures/step9/`](figures/step9/)) | ✅ |
-| **10 · Ensemble** | Do five models beat one temperature number? | pipeline (4), training (5) | Kaggle, Tesla T4 GPU, 2 h 19 min; then Mac, CPU | [`src/ensemble.py`](src/ensemble.py): deep ensemble of 5 seeds | comparison table and plot ([`results/step10_*`](results/)) | ✅ |
-| **11 · Write-up** | What does it all add up to? | everything | – | – | this README in its final form | ⏳ |
+**No data or GPU needed for Steps 6, 7, 8 and 10.** The five models' saved outputs are in [`logits/`](logits/), so these run on a laptop from the repo folder with `.venv/bin/python`, and their numbers should match [`results/`](results/):
 
-![Progress timeline](figures/timeline.png)
+```python
+from src.evaluate import evaluate_run
+from src.calibrate import calibrate_run
+from src.selective import selective_run, headline_figure
+from src.ensemble import ensemble_run
 
-The full plan is in [`docs/OCT-Build-Guide.md`](docs/OCT-Build-Guide.md), and the day-by-day log, with every decision and what went wrong, is in [`NOTES.md`](NOTES.md).
+run = "logits/seed_42"
+summary, per_class = evaluate_run(run)                             # Step 6
+T, table = calibrate_run(run, "figures/step7/reliability.png")     # Step 7
+tables = selective_run(run, "figures/step8/risk_coverage.png")     # Step 8
+headline_figure(run, "figures/step11/headline.png")                # the figure at the top
+
+seeds = {s: f"logits/seed_{s}" for s in (42, 1, 2, 3, 4)}
+team = ensemble_run(seeds, 42, "figures/step10/risk_coverage.png") # Step 10
+```
+
+**Steps 2–5 and Step 9 need the scans,** from [Mendeley v3](https://data.mendeley.com/datasets/rscbjbr9sj/3) (about 7 GB), and Step 9 also needs `best.pt` from training, which is too big to commit (45 MB). I resized every scan to 256×256 first, so full-size scans may give slightly different results. Training ran on a Kaggle T4 GPU with Kaggle's library versions, so a rerun elsewhere may not match exactly. The notebooks are [`04_baseline`](notebooks/04_baseline.ipynb) and, for seeds 1 to 4, [`05_ensemble`](notebooks/05_ensemble.ipynb).
+
+```python
+from src.data import build_index, patient_split
+from src.dataset import make_loaders
+from src.model import build_model
+from src.train import class_weights, fit, set_seed
+from src.gradcam import gradcam_run
+
+index, problems = build_index("path/to/OCT")   # Step 2: expects train/ and test/ with one folder per class
+split, removed = patient_split(index, fold=0)  # Step 3: same split as splits/oct_split_fold0.csv
+loaders = make_loaders("path/to/OCT")          # Step 4: reads splits/oct_split_fold0.csv
+set_seed(42)                                   # Step 5: about 36 min on a T4
+fit(build_model(), loaders, "runs/step5_baseline", epochs=8,
+    weights=class_weights(loaders["train"].dataset.labels))
+shown = gradcam_run("runs/step5_baseline", "path/to/OCT", "figures/step9")   # Step 9, on CPU
+```
+
+## What I learned
+
+**About the science**
+
+- **Check explanations, not just numbers.** My numbers were right, but I wrote some explanations as facts. "Test differs because of the class mix" felt obvious, and a simple test rejected it: reweighting validation moved T to 1.48, the wrong way. Since then, an explanation stays a hypothesis until a check backs it, and the check is written down.
+- **Compare things across splits, not only classes.** I compared image sizes by class in Steps 2 and 4 and never by split, so the odd test set went unnoticed until Step 7.
+- **A calibration doesn't automatically carry over.** A number fitted on one population needn't suit another, which matters more for a clinic than a good score on a tidy test set.
+- **Confidence can be useful without being perfectly calibrated.** Flagging depends on ranking, so it worked even where temperature scaling didn't clearly help.
+- **A range can hide what it doesn't cover.** My intervals hold the model fixed, and the seed alone moved test mistakes from 15 to 31. The best validation seed also had the worst test score. With zero DME misses, the bootstrap gives no range at all, so I used the rule of three instead.
+- **Averaging can't fix a shared mistake.** Five models were steadier, but they got the same confident mistakes wrong.
+- **Learning to read the scans helped.** I labelled scans by eye first, going from 3/8 to 8/8. Drusen against CNV was my own last confusion, and it turned out to be the model's main mistake too.
+
+**What broke, and how I fixed it**
+
+- **A fixed seed didn't give the same split.** Kaggle and my laptop gave different validation sets, because `StratifiedGroupKFold` changed between scikit-learn versions. I fixed it with `shuffle=False` and saved the split as a file.
+- **Training looked slow because of the disk.** I profiled it instead of guessing: reading files took 99.7 ms a scan and transforms 5.8 ms. Resizing once and copying to local disk raised speed from about 100 to 359–489 images/s.
+- **Cropping before resizing would have cut away most of a wide scan.** I caught this in an early experiment, so the crop comes after the resize.
+- **A new Kaggle session lost the code.** Turning Internet on restarts the session, and a failed clone leaves Python caching "no module here". The setup cell now clears that cache and checks everything first.
+- **A PyTorch warning found a real ordering problem.** With mixed precision the scaler can skip an optimiser step, so the learning-rate schedule now skips with it.
+
+The full day-by-day log is in [`NOTES.md`](NOTES.md).
 
 ## The four classes
+
+![The four classes on OCT: normal, DME, CNV and drusen, with the retinal layers labelled](figures/practice/anatomy-labelled.png)
 
 | Class | What it is | What to look for on the scan |
 |---|---|---|
@@ -98,7 +163,7 @@ The full plan is in [`docs/OCT-Build-Guide.md`](docs/OCT-Build-Guide.md), and th
 
 Before writing any code, I learned to label these by eye. Over three practice rounds, I went from **3/8 to 6/8 to 8/8** ([notes](NOTES.md)).
 
-## What I've found so far
+## Other findings along the way
 
 ### The data and how to test fairly
 
@@ -136,7 +201,7 @@ The fix gives an identical split on scikit-learn 1.6, 1.7 and 1.9, and the split
 
 ## Results by step
 
-<details open>
+<details>
 <summary><b>Step 5 · Baseline</b>: validation macro-F1 0.939</summary>
 
 ImageNet-pretrained ResNet-18, all layers fine-tuned, class-weighted loss, AdamW with cosine warm-up, mixed precision, 8 epochs, seed 42, one Tesla T4 (36 min). A clean rerun gave bit-identical logits.
@@ -152,7 +217,7 @@ The weakest class is DRUSEN (validation F1 0.86), mostly confused with CNV ([per
 
 </details>
 
-<details open>
+<details>
 <summary><b>Step 6 · Evaluation</b>: test macro-F1 0.981 (95% CI 0.971–0.990)</summary>
 
 95% intervals from 1,000 bootstrap resamples of the test set. The headline resamples **patients** (the 1,000 test scans come from 635 patients, and scans of one eye aren't independent); resampling images gives a slightly narrower interval.
@@ -181,7 +246,7 @@ Four things the table doesn't show on its own:
 
 </details>
 
-<details open>
+<details>
 <summary><b>Step 7 · Calibration</b>: over-confident on validation; T = 1.25 doesn't clearly carry over to test</summary>
 
 T is fitted on validation only. Scaling never changes a prediction, and the code asserts this. Equal-width ECE with 15 bins is the headline ([table](results/step7_calibration.csv)).
@@ -210,7 +275,7 @@ Both intervals include zero. The supported claim is that there's no evidence T =
 
 </details>
 
-<details open>
+<details>
 <summary><b>Step 8 · Selective prediction</b>: low confidence does point at the mistakes</summary>
 
 Sort scans by confidence, answer the top ones and flag the rest. Each threshold is chosen on validation, then applied to test. Ranges are patient-level 95% intervals, with the threshold held fixed.
@@ -226,21 +291,6 @@ Sort scans by confidence, answer the top ones and flag the rest. Each threshold 
 - **Confidence ranks mistakes far better than chance:** test AURC is 0.0024, against 0.0190 for random flagging and 0.0002 for a perfect ranking.
 - **The review load is uneven:** at 90%, 23.2% of test DRUSEN scans are flagged, against 2.4–6.0% for the other classes ([table](results/step8_per_class.csv)).
 - **Margin and entropy give no clear improvement** over plain confidence ([table](results/step8_score_comparison.csv)).
-
-</details>
-
-<details open>
-<summary><b>Step 9 · Grad-CAM</b>: where the model looked</summary>
-
-Heatmaps show which regions most influenced an answer. They show where the model looked, not why it was right.
-
-![All 6 confident test mistakes, with heatmaps](figures/step9/confident_wrong.png)
-
-- **Measured:** test has exactly 6 mistakes above the confidence threshold. All 6 are drusen called CNV, from 5 patients. A doctor wouldn't be shown these.
-- **Confident mistakes:** all have bumps along the RPE, often several and uneven, with heat on them. A hypothesis is that uneven drusen resemble the irregular CNV hump. Six scans can't prove it, and other bumpy drusen weren't confident mistakes.
-- **Size shortcut:** in [six 512×512 DME scans](figures/step9/dme_512.png), heat is on fluid where it's visible, not on corners or borders. That shows no obvious shortcut there but can't rule one out.
-- **Other panels:** [confident and right](figures/step9/confident_right.png), [least confident](figures/step9/least_confident.png). Scans shown are [listed here](results/step9_scans_shown.csv).
-- **Caution:** the heat is nearly always a central blob on coarse 7×7 maps, and the retina usually sits in the middle, so "on the retina" may be partly a centring effect.
 
 </details>
 
@@ -299,6 +349,48 @@ Validation is about 10% of the training *patients*, with class shares matched to
 
 </details>
 
+## How the steps fit together
+
+Each step answers one question and hands a file to the next. Training happens once, on a Kaggle GPU (Step 5). Every analysis after it reads the saved logits, so Steps 6–8 run on a laptop in seconds, with no retraining.
+
+```mermaid
+flowchart LR
+    D[("Kermany v3<br/>Mendeley")] --> S2["2 · Explore"]
+    S2 -->|index| S3["3 · Patient split"]
+    S3 -->|split CSV| S4["4 · Pipeline"]
+    S4 -->|loaders| S5["5 · Train ResNet-18<br/>Kaggle GPU"]
+    S5 -->|logits| S6["6 · Evaluate"]
+    S5 -->|logits| S7["7 · Calibrate"]
+    S7 -->|temperature T| S8["8 · Selective prediction"]
+    S5 -->|best.pt| S9["9 · Grad-CAM"]
+    S6 -->|mistakes| S9
+    S4 --> S10["10 · Ensemble"]
+    S10 -->|logits| S7
+    S6 & S8 & S9 --> S11["11 · Write-up"]
+    classDef done fill:#147a4b,stroke:#147a4b,color:#fff
+    classDef now fill:#2f5bd3,stroke:#2f5bd3,color:#fff
+    class S2,S3,S4,S5,S6,S7,S8,S9,S10 done
+    class S11 now
+```
+
+| Step | Question it answers | Needs (from) | Ran on | Uses | Produces | |
+|---|---|---|---|---|---|:---:|
+| **1 · Workspace** | Where does everything live, reproducibly? | – | Mac, GitHub, Kaggle | git, Kaggle CLI | this repo; the v3 data and a 256×256 copy as Kaggle datasets | ✅ |
+| **2 · Explore** | What's in the data, and what could mislead a model? | Kermany v3 | Kaggle notebook, CPU | [`src/data.py`](src/data.py) `build_index` | counts, patients, image sizes ([`results/step2_*`](results/)), sample grids | ✅ |
+| **3 · Split** | How do we test without the model recognising patients? | index (2) | Kaggle, CPU; checked on Mac | `patient_split`: `StratifiedGroupKFold` by patient, leakage `assert` | [`splits/oct_split_fold0.csv`](splits/oct_split_fold0.csv), read by every later step | ✅ |
+| **4 · Pipeline** | How do scans reach the network, fast and undistorted? | split (3), 256×256 copy (1) | Kaggle, CPU | [`src/dataset.py`](src/dataset.py), torchvision v2 | resize decision, augmentation, loaders at 359–489 images/s ([`results/step4_*`](results/)) | ✅ |
+| **5 · Baseline** | Can a standard CNN tell the four classes apart? | loaders (4) | Kaggle, Tesla T4 GPU, 36 min | [`src/model.py`](src/model.py), [`src/train.py`](src/train.py): ImageNet ResNet-18 | `best.pt` and validation/test logits (in `runs/`, not committed), training log | ✅ |
+| **6 · Evaluate** | How sure is the score, and what does it confuse? | logits (5); patient IDs (3) | Mac, CPU, 9 s | [`src/evaluate.py`](src/evaluate.py): patient-level bootstrap | intervals, per-class table, confusion matrices ([`results/step6_*`](results/)) | ✅ |
+| **7 · Calibrate** | Does "98% sure" mean 98%? | logits (5); patient IDs (3) | Mac, CPU | [`src/calibrate.py`](src/calibrate.py): ECE, reliability diagrams, temperature scaling | T, before/after scores and diagrams ([`results/step7_*`](results/)) | ✅ |
+| **8 · Selective prediction** | If it answers only confident scans, how many mistakes does it catch? | calibrated probabilities (7) | Mac, CPU | [`src/selective.py`](src/selective.py): risk–coverage curve, threshold chosen on validation | the headline result, plot and tables ([`results/step8_*`](results/)) | ✅ |
+| **9 · Grad-CAM** | What does it look at, especially when confidently wrong? | `best.pt` (5), mistakes (6) | Kaggle or Mac | [`src/gradcam.py`](src/gradcam.py): Grad-CAM, checked against `pytorch-grad-cam` | heatmap panels ([`figures/step9/`](figures/step9/)) | ✅ |
+| **10 · Ensemble** | Do five models beat one temperature number? | pipeline (4), training (5) | Kaggle, Tesla T4 GPU, 2 h 19 min; then Mac, CPU | [`src/ensemble.py`](src/ensemble.py): deep ensemble of 5 seeds | comparison table and plot ([`results/step10_*`](results/)) | ✅ |
+| **11 · Write-up** | What does it all add up to? | everything | – | – | this README in its final form | ⏳ |
+
+![Progress timeline](figures/timeline.png)
+
+The full plan is in [`docs/OCT-Build-Guide.md`](docs/OCT-Build-Guide.md), and the day-by-day log, with every decision and what went wrong, is in [`NOTES.md`](NOTES.md).
+
 ## Repository layout
 
 ```
@@ -312,6 +404,7 @@ src/        project code
             selective.py risk–coverage, thresholds          (Step 8)
             gradcam.py   heatmaps and panels                (Step 9)
             ensemble.py  team of models, comparison table   (Step 10)
+logits/     each model's saved outputs on validation and test, enough to rerun Steps 6, 7, 8 and 10
 splits/     the saved patient split that every step from 3 on reads
 results/    small CSV tables of every result, one file per step (index in results/README.md)
 figures/    figures used in NOTES.md and this README, one folder per step
@@ -321,54 +414,6 @@ NOTES.md    daily log: what I tried, what broke, what I learned
 TODO.md     things deferred until later
 runs/       checkpoints, logits and run outputs (gitignored)
 ```
-
-## Reproducing
-
-**Steps 2–5 run on Kaggle** with the v3 dataset (or its 256×256 copy) attached, and work the same on a local copy:
-
-```python
-from src.data import build_index, patient_split
-
-index, problems = build_index("path/to/OCT")   # Step 2: expects train/ and test/ with one folder per class
-split, removed = patient_split(index, fold=0)  # Step 3: same split as splits/oct_split_fold0.csv
-
-from src.dataset import make_loaders
-from src.model import build_model
-from src.train import class_weights, fit, set_seed
-
-loaders = make_loaders("path/to/OCT")          # Step 4: reads splits/oct_split_fold0.csv
-set_seed(42)                                   # Step 5: needs a GPU (about 36 min on a T4)
-fit(build_model(), loaders, "runs/step5_baseline", epochs=8,
-    weights=class_weights(loaders["train"].dataset.labels))
-```
-
-The training notebooks are [`notebooks/04_baseline.ipynb`](notebooks/04_baseline.ipynb) and, for seeds 1 to 4 in Step 10, [`notebooks/05_ensemble.ipynb`](notebooks/05_ensemble.ipynb), which saves to `runs/step10_ensemble/ensemble/seed_N/` when downloaded.
-
-**Steps 6 onwards run on a laptop** from the saved logits in `runs/step5_baseline/`:
-
-```python
-from src.evaluate import evaluate_run
-
-summary, per_class = evaluate_run("runs/step5_baseline")   # Step 6, CPU, about 9 s
-
-from src.calibrate import calibrate_run
-
-T, table = calibrate_run("runs/step5_baseline", "figures/step7/reliability.png")   # Step 7, CPU
-
-from src.selective import selective_run
-
-tables = selective_run("runs/step5_baseline", "figures/step8/risk_coverage.png")   # Step 8, CPU
-
-from src.gradcam import gradcam_run
-
-shown = gradcam_run("runs/step5_baseline", "path/to/OCT256", "figures/step9")   # Step 9, CPU, 256×256 scans
-
-from src.ensemble import ensemble_run
-
-seeds = {42: "runs/step5_baseline", **{s: f"runs/step10_ensemble/ensemble/seed_{s}" for s in (1, 2, 3, 4)}}
-tables = ensemble_run(seeds, 42, "figures/step10/risk_coverage.png")   # Step 10, CPU, after the training notebook
-```
-
 
 ## References
 
