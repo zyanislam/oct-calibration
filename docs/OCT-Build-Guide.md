@@ -533,9 +533,9 @@ A professor will spend about two minutes on your repo. If the point isn't clear 
 
 ### What you'll do
 
-- [ ] **Write the README in this order:** the one-line summary and your Step 8 sentence; the reliability diagram and risk–coverage curve side by side; the results table with intervals; a short method section (data, patient split, model, calibration); Grad-CAM panels with your reading; limitations; exact commands to reproduce.
+- [x] **Write the README in this order:** the one-line summary and your Step 8 sentence; the reliability diagram and risk–coverage curve side by side; the results table with intervals; a short method section (data, patient split, model, calibration); Grad-CAM panels with your reading; limitations; exact commands to reproduce.
 
-- [ ] **Turn `NOTES.md` into a "What I learned" section**, including what broke and how you fixed it.
+- [x] **Turn `NOTES.md` into a "What I learned" section**, including what broke and how you fixed it.
 
 - [ ] **Put all figures in `figures/`** and check the repo runs from a fresh clone.
 
