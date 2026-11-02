@@ -2,7 +2,7 @@
 
 **Can an eye-scan AI tell us when not to trust it?**
 
-![Status](https://img.shields.io/badge/status-step%2010%20of%2011-2f5bd3)
+![Status](https://img.shields.io/badge/status-step%2011%20of%2011-2f5bd3)
 ![Data](https://img.shields.io/badge/data-Kermany%20OCT2017%20v3-555)
 ![Scans](https://img.shields.io/badge/scans-109%2C309-555)
 ![Licence](https://img.shields.io/badge/data%20licence-CC%20BY%204.0-555)
@@ -19,7 +19,7 @@ An AI that's right 98% of the time is still wrong sometimes, and on its own you 
 | AI answers only when confident | 909 | **6** |
 | Sent to a doctor | 91 | the other 13 are caught here |
 
-**Two honest limits.** The "two-thirds" rests on only 19 mistakes, so the true figure could be anywhere from about 40% to 90%. And this isn't ready for a clinic: the test scans look different from the training scans, so results on another hospital's scans could differ.
+**Three honest limits.** The "two-thirds" rests on only 19 mistakes, so the true figure could be anywhere from about 40% to 90%. Training the same model again with a different random seed gave between 15 and 31 test mistakes, so the 19 is partly luck. And this isn't ready for a clinic: the test scans look different from the training scans, so results on another hospital's scans could differ.
 
 ```mermaid
 flowchart LR
@@ -43,6 +43,7 @@ The technical detail is below. It's the imaging half of a wider question I work 
 | **Calibration** (Step 7) | Over-confident on validation (confidence 0.978, accuracy 0.965). T = 1.25 lowers validation ECE from 0.0133 to 0.0059, but test ECE rises from 0.0069 to 0.0128; both changes' 95% intervals include zero |
 | **Where it looks** (Step 9) | All 6 confident test mistakes are drusen called CNV. Heat is mostly on the retina; no obvious size shortcut in the scans checked, though that isn't ruled out |
 | **Selective prediction** (Step 8) | Answering 91% of test scans catches 68% of errors (13 of 19; 95% CI 42–92%), and accuracy on answered scans rises from 98.1% to 99.3% |
+| **Team of 5 models** (Step 10) | Small, clear gains on validation; on test, still 19 mistakes and all ranges include no change. Temperature scaling stays the main method. The seed alone moves a single model between 15 and 31 test mistakes |
 
 ## How the steps fit together
 
@@ -64,8 +65,8 @@ flowchart LR
     S6 & S8 & S9 --> S11["11 · Write-up"]
     classDef done fill:#147a4b,stroke:#147a4b,color:#fff
     classDef now fill:#2f5bd3,stroke:#2f5bd3,color:#fff
-    class S2,S3,S4,S5,S6,S7,S8,S9 done
-    class S10 now
+    class S2,S3,S4,S5,S6,S7,S8,S9,S10 done
+    class S11 now
 ```
 
 | Step | Question it answers | Needs (from) | Ran on | Uses | Produces | |
@@ -79,8 +80,8 @@ flowchart LR
 | **7 · Calibrate** | Does "98% sure" mean 98%? | logits (5); patient IDs (3) | Mac, CPU | [`src/calibrate.py`](src/calibrate.py): ECE, reliability diagrams, temperature scaling | T, before/after scores and diagrams ([`results/step7_*`](results/)) | ✅ |
 | **8 · Selective prediction** | If it answers only confident scans, how many mistakes does it catch? | calibrated probabilities (7) | Mac, CPU | [`src/selective.py`](src/selective.py): risk–coverage curve, threshold chosen on validation | the headline result, plot and tables ([`results/step8_*`](results/)) | ✅ |
 | **9 · Grad-CAM** | What does it look at, especially when confidently wrong? | `best.pt` (5), mistakes (6) | Kaggle or Mac | [`src/gradcam.py`](src/gradcam.py): Grad-CAM, checked against `pytorch-grad-cam` | heatmap panels ([`figures/step9/`](figures/step9/)) | ✅ |
-| **10 · Extension** | Does an ensemble give more honest confidence? | pipeline (4), training (5) | Kaggle GPU | e.g. a deep ensemble | new logits, rerun through 6–8 | ⏳ |
-| **11 · Write-up** | What does it all add up to? | everything | – | – | this README in its final form | |
+| **10 · Ensemble** | Do five models beat one temperature number? | pipeline (4), training (5) | Kaggle, Tesla T4 GPU, 2 h 19 min; then Mac, CPU | [`src/ensemble.py`](src/ensemble.py): deep ensemble of 5 seeds | comparison table and plot ([`results/step10_*`](results/)) | ✅ |
+| **11 · Write-up** | What does it all add up to? | everything | – | – | this README in its final form | ⏳ |
 
 ![Progress timeline](figures/timeline.png)
 
@@ -126,6 +127,12 @@ The fix gives an identical split on scikit-learn 1.6, 1.7 and 1.9, and the split
 **6. Loading the data was the first bottleneck, not the model.** (Step 4) Reading scans straight from Kaggle's input disk gave about 100 images/s, because the disk waits on the first read of every file. Resizing every scan once to 256×256 and copying them to local disk at the start of each session (about 65 s) raised it to **359–489 images/s**: about 3–4 minutes of loading per epoch instead of 15 ([numbers](results/step4_loader_speed.csv)).
 
 **7. Almost every scan is grayscale.** (Step 4) 109,307 of 109,309 are single-channel; the two RGB exceptions are drusen test scans at one-off sizes ([table](results/step4_image_modes.csv)). The pipeline reads every scan as grayscale and copies it to the 3 channels the pretrained network expects.
+
+### Training the same model again
+
+**8. The random seed alone moves the score.** (Step 10) Five runs with the same data, settings and code made 15, 19, 23, 25 and 31 test mistakes. The range in Step 6 (macro-F1 0.971–0.990) shows how much the score moves with different patients, but it holds the model fixed, so it leaves this out. Validation wouldn't have picked the best run either: seed 1 had the best validation score and the worst test score ([table](results/step10_members.csv)).
+
+**9. A team can't fix a mistake that all its members share.** (Step 10) All 7 confident test mistakes across the single model and the team are drusen called CNV, and all five models get each one wrong. The models disagree on only 32 of 1,000 test scans. Why they agree isn't established ([scans and votes](results/step10_confident_mistakes.csv)).
 
 ## Results by step
 
@@ -237,6 +244,38 @@ Heatmaps show which regions most influenced an answer. They show where the model
 
 </details>
 
+<details>
+<summary><b>Step 10 · Team of models</b>: a little steadier, but the models share a blind spot</summary>
+
+I trained the same model four more times, changing only the random seed, and averaged the probabilities of all five. Thresholds and temperature come from validation.
+
+| Out of 1,000 test scans | Accuracy | ECE | AURC | NLL | Confident mistakes |
+|---|---:|---:|---:|---:|---:|
+| Baseline (seed 42) | 98.1% | 0.0069 | 0.0023 | 0.0682 | 6 |
+| Temperature scaling (T = 1.25) | 98.1% | 0.0128 | 0.0024 | 0.0703 | 6 |
+| Team of 5 | 98.1% | 0.0098 | 0.0020 | 0.0633 | 4 |
+| Team of 5 + temperature (T = 1.09) | 98.1% | 0.0098 | 0.0021 | 0.0648 | 4 |
+
+95% range of the change from temperature scaling to team + temperature, by patient:
+
+| | Accuracy | ECE | NLL | AURC |
+|---|---:|---:|---:|---:|
+| Validation (10,830 scans) | +0.0004 to +0.0055 | −0.0050 to +0.0012 | −0.0202 to −0.0087 | −0.0023 to −0.0005 |
+| Test (1,000 scans) | −0.0050 to +0.0049 | −0.0086 to +0.0064 | −0.0117 to +0.0005 | −0.0010 to +0.0001 |
+
+![Risk–coverage for temperature scaling and the team](figures/step10/risk_coverage.png)
+
+On validation, a team of five gives small but clear gains in accuracy, NLL and AURC over one temperature-scaled model, while on test all the ranges include no change. All 7 confident mistakes across the two methods are made by all five models, so the team doesn't justify five times the training here, and one temperature number stays the headline method.
+
+- **Same mistakes:** the team makes 19 test mistakes, like seed 42. 11 scans are wrong in all five models, and the other 8 are scans where the models disagree and the team picks wrong.
+- **Like for like:** flagging the same 91 test scans, the team catches 14 mistakes and the single model 13.
+- **Less temperature needed:** on validation, the team's ECE is 0.0055 with no temperature, close to 0.0059 for the single model with it.
+- **Team size:** on validation, three models give about 82% of the drop in mistakes that five give ([table](results/step10_team_size.csv)).
+- **Why they agree:** not established. Wrong labels, or something all five share such as the data or settings, are untested ideas ([the scans and votes](results/step10_confident_mistakes.csv)).
+- Full tables: [comparison](results/step10_comparison.csv), [ranges](results/step10_change.csv), [each seed](results/step10_members.csv).
+
+</details>
+
 ## Data
 
 **Kermany, Zhang & Goldbaum (2018), OCT2017, Mendeley Data v3** ([doi:10.17632/rscbjbr9sj.3](https://data.mendeley.com/datasets/rscbjbr9sj/3)), licensed CC BY 4.0. This is the release used in the [*Cell* paper](https://www.cell.com/cell/fulltext/S0092-8674(18)30154-5).
@@ -272,6 +311,7 @@ src/        project code
             calibrate.py ECE, temperature, reliability  (Step 7)
             selective.py risk–coverage, thresholds          (Step 8)
             gradcam.py   heatmaps and panels                (Step 9)
+            ensemble.py  team of models, comparison table   (Step 10)
 splits/     the saved patient split that every step from 3 on reads
 results/    small CSV tables of every result, one file per step (index in results/README.md)
 figures/    figures used in NOTES.md and this README, one folder per step
@@ -302,7 +342,7 @@ fit(build_model(), loaders, "runs/step5_baseline", epochs=8,
     weights=class_weights(loaders["train"].dataset.labels))
 ```
 
-The training notebook is [`notebooks/04_baseline.ipynb`](notebooks/04_baseline.ipynb).
+The training notebooks are [`notebooks/04_baseline.ipynb`](notebooks/04_baseline.ipynb) and, for seeds 1 to 4 in Step 10, [`notebooks/05_ensemble.ipynb`](notebooks/05_ensemble.ipynb), which saves to `runs/step10_ensemble/ensemble/seed_N/` when downloaded.
 
 **Steps 6 onwards run on a laptop** from the saved logits in `runs/step5_baseline/`:
 
@@ -322,6 +362,11 @@ tables = selective_run("runs/step5_baseline", "figures/step8/risk_coverage.png")
 from src.gradcam import gradcam_run
 
 shown = gradcam_run("runs/step5_baseline", "path/to/OCT256", "figures/step9")   # Step 9, CPU, 256×256 scans
+
+from src.ensemble import ensemble_run
+
+seeds = {42: "runs/step5_baseline", **{s: f"runs/step10_ensemble/ensemble/seed_{s}" for s in (1, 2, 3, 4)}}
+tables = ensemble_run(seeds, 42, "figures/step10/risk_coverage.png")   # Step 10, CPU, after the training notebook
 ```
 
 
@@ -330,4 +375,5 @@ shown = gradcam_run("runs/step5_baseline", "path/to/OCT256", "figures/step9")   
 - Kermany, D. S. et al. (2018). *Identifying Medical Diagnoses and Treatable Diseases by Image-Based Deep Learning.* Cell 172(5).
 - Guo, C. et al. (2017). *On Calibration of Modern Neural Networks.* ICML.
 - Geifman, Y. & El-Yaniv, R. (2017). *Selective Classification for Deep Neural Networks.* NeurIPS.
+- Lakshminarayanan, B., Pritzel, A. & Blundell, C. (2017). *Simple and Scalable Predictive Uncertainty Estimation using Deep Ensembles.* NeurIPS.
 - Kapoor, S. & Narayanan, A. (2023). *Leakage and the Reproducibility Crisis in Machine-Learning-Based Science.* Patterns.

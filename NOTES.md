@@ -4,7 +4,7 @@
 
 ## Progress
 
-Steps 1–5 done in 5 days, on the build guide's plan. Step 5 took 1 day instead of 2 and caught up the day lost in Steps 1–4. At plan pace, the finish (Step 11) is the end of **Wed 4 Nov**.
+Steps 1–10 done in 12 days, on the build guide's plan. At plan pace, the finish (Step 11) is the end of **Wed 4 Nov**.
 
 ![Progress timeline](figures/timeline.png)
 
@@ -22,6 +22,11 @@ One entry a day: what I tried, what broke, what I learned. Newest first.
 - Merged Step 8 (PR #5). Started Step 9 on `step9-gradcam` and read its concepts page.
 - `src/gradcam.py` written; it matches the `pytorch-grad-cam` library (correlation above 0.9999 on all 18 test panel scans). Four panels saved. All 6 confident test mistakes are drusen called CNV.
 - Read the panels: heat mostly on the retina, and on RPE bumps in the confident mistakes (see Step 9). No obvious size shortcut in the six 512×512 DME scans, though that can't be ruled out. Step 9 done.
+
+- Merged Step 9 (PR #6). Started Step 10 on `step10-extension`: a team of 5 models (Step 5's seed 42 plus seeds 1 to 4, same settings). The saved Kaggle run took 2 h 19 min.
+- First comparison, on saved logits: the team didn't make fewer test mistakes (19, same as seed 42). Confident mistakes fell from 6 to 4. All five models make all 6 of the old ones. Patient-level ranges on test include no change (see Step 10).
+- Wrote `src/ensemble.py` and the Step 10 learning page. Same 91 flagged test scans: team catches 14 mistakes, single model 13.
+- Decisions made: single model + temperature stays the main result, and the README gives the seed spread. Step 10 done.
 
 </details>
 
@@ -496,6 +501,54 @@ Heatmaps for the predicted class, from the last ResNet block (`src/gradcam.py`),
 **The pattern in the confident mistakes:** all six have bumps along the RPE, often several and uneven, rather than one smooth dome, and the heat sits on them. My hypothesis is that uneven drusen look enough like the irregular CNV hump to mislead the model. Six scans can't prove this, and bumpiness alone doesn't explain it: the least-confident panel also has drusen with several bumps, and those weren't confident mistakes.
 
 **Caution:** the heat is nearly always a central blob, and the retina usually sits in the middle, so "on the retina" may be partly a centring effect. These maps can't tell the difference.
+
+</details>
+
+<details>
+<summary><strong>Step 10 · Team of models</strong></summary>
+
+**Why this option:** the guide's recommended one, and the strongest for the uncertainty question. Five models, because seed 42 was already trained.
+
+**In plain words:** five models are a little steadier than one, but they mostly share the same blind spot. On test, the team makes the same number of mistakes as the Step 5 model, and is confidently wrong on 4 scans instead of 6. The 6 old mistakes were made by all five models, so a vote can't fix them. It can only lower the confidence.
+
+Each model has the same settings, and only the seed differs. Averaged probabilities. Thresholds and T come from validation.
+
+| Test, 1,000 scans | Mistakes | ECE | NLL | AURC | Confident mistakes | Answered at the 90% threshold | Mistakes caught |
+|---|---|---|---|---|---|---|---|
+| Seed 42 | 19 | 0.0069 | 0.0682 | 0.0023 | | 90.8% | 13 |
+| Seed 42 + T (1.25) | 19 | 0.0128 | 0.0703 | 0.0024 | 6 | 90.9% | 13 |
+| Team | 19 | 0.0098 | 0.0633 | 0.0020 | | 88.7% | 15 |
+| Team + T (1.09) | 19 | 0.0098 | 0.0648 | 0.0021 | 4 | 88.7% | 15 |
+
+Patient-level 95% range for team + T minus seed 42 + T:
+
+| | Accuracy | ECE | NLL | AURC |
+|---|---|---|---|---|
+| Validation | +0.0004 to +0.0055 | −0.0050 to +0.0012 | −0.0202 to −0.0087 | −0.0023 to −0.0005 |
+| Test | −0.0050 to +0.0049 | −0.0086 to +0.0064 | −0.0117 to +0.0005 | −0.0010 to +0.0001 |
+
+- **Validation shows a real but small gain.** 10,830 scans: 345 mistakes against 377, with better NLL and AURC. ECE alone doesn't clearly improve.
+- **Test can't settle it.** All four ranges include no change, and with only 19 mistakes the test set is small.
+- **The team needs less temperature.** T is 1.09, against 1.06 to 1.38 for its members. Averaging does most of that job on validation: ECE 0.0055 unscaled, against 0.0059 for seed 42 + T.
+- **The seed alone moves a single model a lot.** Test mistakes run 15, 19, 23, 25, 31. These ranges don't include that, so the Step 5 result partly reflects its seed.
+- **Validation doesn't pick the best seed.** Seed 1 has the best validation macro-F1 (0.9413) and the worst test score (0.9689).
+- **Fair comparison:** seed 42 is better than the average member on test (19 mistakes against 22.6). Against that average, the team's NLL (0.0633 against 0.0778) and AURC (0.0020 against 0.0029) look better. This wasn't tested with ranges.
+- **The 6 confident mistakes:** all drusen called CNV, and all five models agree on each. The team flags 3 and still answers 3, and adds 1 new confident mistake (also drusen called CNV).
+- **Shared mistakes:** 11 test scans are wrong in all five models.
+
+**Decisions (Claude's picks, which I accepted):** the single model + temperature stays the main result, with the team as the comparison. The README states the seed spread. I'll look at the 7 shared mistakes as a look only, with no claim about the labels; that look isn't done yet.
+
+**What the table shows (drafted by Claude, for me to reword):** On validation, a team of five gives small but clear gains in accuracy, NLL and AURC over one temperature-scaled model, while on test all the ranges include no change. All 7 confident mistakes across the two methods are made by all five models, so the team doesn't justify five times the training here, and one temperature number stays the headline method.
+
+**Not yet known:** why all five agree on these scans. Untested ideas are label errors, or something shared by every model such as the data or training settings. 
+
+- **Like for like:** the team flags more scans at its own threshold (11.3% against 9.1%). When both flag the same 91 test scans, the team catches 14 mistakes and the single model 13.
+- **Team size:** on validation, one model averages 368.8 mistakes, three 349.4 and five 345, so three models give about 82% of the drop. Test mistakes range from 15 to 31 for a single model and 18 to 21 for teams of four.
+- **Where the team's 19 test mistakes come from:** 11 scans are wrong in all five models, and 8 are scans where the models disagree and the team picks wrong. They disagree on 32 scans in total, and the team is right on 24.
+
+`src/ensemble.py` writes `results/step10_*.csv` and `figures/step10/risk_coverage.png`.
+
+![Risk-coverage: temperature against team plus temperature](figures/step10/risk_coverage.png)
 
 </details>
 

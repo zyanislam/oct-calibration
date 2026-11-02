@@ -23,5 +23,10 @@ Small, plain CSV tables of every result, so numbers can be checked or reused wit
 | `step8_per_class.csv` | Share of each class flagged at each threshold |
 | `step8_score_comparison.csv` | AURC for confidence, margin and entropy |
 | `step9_scans_shown.csv` | Every scan in the Grad-CAM panels, with true class, prediction and confidence |
+| `step10_comparison.csv` | Baseline, temperature scaling, team and team + temperature on validation and test: accuracy, ECE, NLL, Brier, AURC and selective-prediction results |
+| `step10_change.csv` | Patient-level 95% intervals on the change from single model to team, with and without temperature |
+| `step10_members.csv` | Each of the 5 seeds alone: T, accuracy, mistakes, ECE before and after T, NLL and AURC |
+| `step10_team_size.csv` | Mistakes, NLL and AURC over every team of 1 to 5 members: mean, lowest and highest |
+| `step10_confident_mistakes.csv` | The 7 confident test mistakes of the single model or the team, with each member's vote |
 
 All Step 2 numbers come from `src.data.build_index` on Kermany OCT2017, Mendeley v3 (109,309 images).
