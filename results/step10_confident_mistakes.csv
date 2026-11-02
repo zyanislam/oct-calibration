@@ -1,0 +1,8 @@
+path,patient,true,single_says,single_confidence,single_outcome,team_says,team_confidence,team_outcome,members_wrong,votes
+test/DRUSEN/DRUSEN-3166758-1.jpeg,3166758,DRUSEN,CNV,0.946,answered,CNV,0.8924,flagged,5,CNV CNV CNV CNV CNV
+test/DRUSEN/DRUSEN-6420074-2.jpeg,6420074,DRUSEN,CNV,0.9317,answered,CNV,0.979,answered,5,CNV CNV CNV CNV CNV
+test/DRUSEN/DRUSEN-6420074-3.jpeg,6420074,DRUSEN,CNV,0.99,answered,CNV,0.9522,answered,5,CNV CNV CNV CNV CNV
+test/DRUSEN/DRUSEN-7835303-1.jpeg,7835303,DRUSEN,CNV,0.9367,answered,CNV,0.9129,flagged,5,CNV CNV CNV CNV CNV
+test/DRUSEN/DRUSEN-8060347-1.jpeg,8060347,DRUSEN,CNV,0.9969,answered,CNV,0.9983,answered,5,CNV CNV CNV CNV CNV
+test/DRUSEN/DRUSEN-9097062-1.jpeg,9097062,DRUSEN,CNV,0.8391,flagged,CNV,0.938,answered,5,CNV CNV CNV CNV CNV
+test/DRUSEN/DRUSEN-9582839-1.jpeg,9582839,DRUSEN,CNV,0.9587,answered,CNV,0.8719,flagged,5,CNV CNV CNV CNV CNV

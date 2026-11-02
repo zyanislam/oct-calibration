@@ -1,0 +1,5 @@
+first,second,split,accuracy_change_low,accuracy_change_high,ece_change_low,ece_change_high,nll_change_low,nll_change_high,aurc_change_low,aurc_change_high
+baseline,team,val,0.0004,0.0055,-0.0099,-0.0023,-0.03,-0.0093,-0.0023,-0.0005
+baseline,team,test,-0.005,0.0049,-0.0043,0.0103,-0.0139,0.0025,-0.001,0.0002
+temperature,team + temperature,val,0.0004,0.0055,-0.005,0.0012,-0.0202,-0.0087,-0.0023,-0.0005
+temperature,team + temperature,test,-0.005,0.0049,-0.0086,0.0064,-0.0117,0.0005,-0.001,0.0001

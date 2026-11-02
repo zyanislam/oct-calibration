@@ -489,9 +489,9 @@ Temperature scaling is the standard baseline. Comparing it with one stronger unc
 
 ### What you'll do
 
-- [ ] **Pick one option** from the alternatives below and write down why in `NOTES.md`.
+- [x] **Pick one option** from the alternatives below and write down why in `NOTES.md`.
 
-- [ ] **Run it and add it to a comparison table:** baseline, temperature scaling and your extension, with columns for accuracy, ECE and AURC.
+- [x] **Run it and add it to a comparison table:** baseline, temperature scaling and your extension, with columns for accuracy, ECE and AURC.
 
 
 ### Learn first
