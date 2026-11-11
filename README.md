@@ -25,6 +25,22 @@ An AI that's right 98% of the time is still wrong sometimes, and on its own you 
 
 This is the imaging half of a wider question I work on: how to show model uncertainty to the people who rely on it. The other half is confidence cues on automatic captions for Deaf and hard-of-hearing viewers, where an unreliable "I'm unsure" flag is worse than none.
 
+## Why this matters
+
+**Accuracy alone isn't what stops these models being used.** Classifiers like this one have scored highly on this dataset since the original 2018 paper. What a clinic also needs is to know which answers to doubt, because a model that is right 98% of the time gives no warning on the other 2%. This project measures that directly: does low confidence point at the mistakes, with the threshold fixed in advance and ranges that account for patients?
+
+**What it could mean in practice (an illustration, not a tested result).** Picture a screening service that receives 1,000 OCT scans a week. Today, someone reads all 1,000. With this setup, the model answers about 909, and an ophthalmologist reads the 91 it's least sure of. If this week behaved like the test set, 13 of the model's 19 mistakes would be among those 91, so only 6 would get through unchecked, instead of 19 with no check at all. That trade, reading 9% of scans to catch about two-thirds of the errors, is what a clinic would actually decide on.
+
+**The checks matter as much as the result.** Several things here would have produced a confident, wrong write-up if I hadn't tested them:
+- the official test set turned out to be a different kind of scan from training,
+- a calibration fix that worked on validation didn't carry over to test,
+- the random seed alone moved the score more than the reported range did,
+- and five models together still shared the same confident mistakes.
+
+These are the same traps that catch medical AI in published work, found here on a small scale.
+
+**What it isn't.** It isn't a better classifier, a new method, or clinical evidence. The model is a standard ResNet-18, and nothing was tested with doctors or patients. The [limitations](#limitations) say what that leaves open.
+
 ## Results
 
 Test ranges are 95% intervals from resampling whole patients. Thresholds and temperature come from validation only.
@@ -54,7 +70,7 @@ flowchart LR
     C -- low --> E[Flag for an<br/>ophthalmologist]
 ```
 
-- **Data:** Kermany OCT2017, Mendeley v3: 109,309 scans of four classes (CNV, DME, DRUSEN, NORMAL), with the official balanced test set of 1,000 scans.
+- **Data:** Kermany OCT2017, Mendeley v3: 109,309 scans of four classes (CNV, DME, DRUSEN, NORMAL), with the official balanced test set of 1,000 scans. Every scan was resized once to 256×256 for speed, in [a copy I made and published on Kaggle](#my-two-kaggle-copies).
 - **Patient split:** each patient is on one side only, checked by an `assert`, because one patient can have hundreds of near-identical scans. The split is [saved as a file](splits/oct_split_fold0.csv) that every step reads.
 - **Model:** ImageNet-pretrained ResNet-18, all layers fine-tuned, class-weighted loss, 8 epochs on one Kaggle GPU, best epoch chosen on validation macro-F1.
 - **Calibration:** one temperature number, fitted on validation, divides the model's raw scores. It changes confidence and never the predicted class, and the code asserts this.
@@ -75,13 +91,24 @@ Heatmaps show which regions most influenced an answer. They show where the model
 
 ## Limitations
 
+Each limit comes with what it could mean in practice. The examples are illustrations, not things that were tested.
+
 - **One public dataset.** There's no outside test set, and nothing here was checked on another hospital's scans.
+  *In practice:* a clinic with a different scanner brand, or a different patient population, might see more mistakes. Its 90% threshold could also flag far more or far fewer scans than planned. Something like this already happened between validation and test here.
 - **The test set looks like a different acquisition.** 94% of test scans are one image size that is only 0.4% of training and validation scans ([finding 5](#the-data-and-how-to-test-fairly)), so test results describe that population, not OCT scans in general.
+  *In practice:* temperature scaling improved calibration on validation and made it worse on test. A hospital's own scans could behave like a third population again, so its threshold and temperature would need checking on its own data.
 - **Few test mistakes.** Every test result about mistakes rests on 19 of them, which is why the ranges are wide.
+  *In practice:* "about two-thirds of mistakes get caught" honestly means "somewhere between 4 in 10 and 9 in 10". That's a big difference when deciding whether the safety net is good enough.
 - **One seed is one sample.** Other seeds made 15 to 31 test mistakes, and the intervals above hold the model fixed, so they leave this out.
+  *In practice:* retraining the same model next month, with nothing else changed, could give anything in that range. A reported 19 may be partly luck.
 - **Image-level labels.** Each scan has one label with no lesion marked, and some labels may be wrong. I didn't check them.
+  *In practice:* if a scan labelled drusen really shows early CNV, a correct answer counts as a mistake, and no interval shows that error. The [7 scans](results/step10_confident_mistakes.csv) that all five models call CNV are where I'd look first.
+- **Scans are squashed.** Every scan was resized to 256×256 and then to 224×224, so a 1536×496 scan is squeezed sideways about three times more than top to bottom. This wasn't tested.
+  *In practice:* small, closely spaced drusen could blur together and look more like one irregular CNV hump, which is the model's main mistake.
 - **Heatmaps aren't explanations.** Grad-CAM shows where the model looked, and a shortcut through image size isn't ruled out.
-- **No clinical validation.** Nobody has tested this with doctors or patients, and 23% of test DRUSEN scans get flagged at the 90% threshold, so the review load would be uneven.
+  *In practice:* all 8,659 scans at 512×512 are DME. A model that learned "this scanner usually means DME" could still show heat on the retina and look reasonable.
+- **No clinical validation.** Nobody has tested this with doctors or patients.
+  *In practice:* at the 90% threshold, about 1 in 4 test drusen scans is flagged, against 1 in 17 to 1 in 42 for the other classes. A clinic that sees mostly early AMD would get a much heavier review load than the overall 9% suggests. Staff might also come to trust unflagged answers too much, and only a real study could measure that.
 
 ## Reproducing
 
@@ -110,7 +137,7 @@ seeds = {s: f"logits/seed_{s}" for s in (42, 1, 2, 3, 4)}
 team = ensemble_run(seeds, 42, "figures/step10/risk_coverage.png") # Step 10
 ```
 
-**Steps 2–5 and Step 9 need the scans,** from [Mendeley v3](https://data.mendeley.com/datasets/rscbjbr9sj/3) (about 7 GB), and Step 9 also needs `best.pt` from training, which is too big to commit (45 MB). I resized every scan to 256×256 first, so full-size scans may give slightly different results. Training ran on a Kaggle T4 GPU with Kaggle's library versions, so a rerun elsewhere may not match exactly. The notebooks are [`04_baseline`](notebooks/04_baseline.ipynb) and, for seeds 1 to 4, [`05_ensemble`](notebooks/05_ensemble.ipynb).
+**Steps 2–5 and Step 9 need the scans,** from [Mendeley v3](https://data.mendeley.com/datasets/rscbjbr9sj/3) (about 7 GB) or [my 256×256 copy on Kaggle](https://www.kaggle.com/datasets/zyanislam/kermany-retinal-oct-v3-256) (2.6 GB, what training used), and Step 9 also needs `best.pt` from training, which is too big to commit (45 MB). I resized every scan to 256×256 first, so full-size scans may give slightly different results. Training ran on a Kaggle T4 GPU with Kaggle's library versions, so a rerun elsewhere may not match exactly. The notebooks are [`04_baseline`](notebooks/04_baseline.ipynb) and, for seeds 1 to 4, [`05_ensemble`](notebooks/05_ensemble.ipynb).
 
 ```python
 from src.data import build_index, patient_split
@@ -337,6 +364,17 @@ On validation, a team of five gives small but clear gains in accuracy, NLL and A
 | test | 1,000 | 635 | 250 | 250 | 250 | 250 |
 
 Validation is about 10% of the training *patients*, with class shares matched to train. The test set is the official one, balanced at 250 per class, so **macro-F1** is the headline metric rather than accuracy.
+
+### My two Kaggle copies
+
+I made two copies of the data on Kaggle, because the training ran there. Both keep the original licence (CC BY 4.0) and credit the authors.
+
+| Copy | What it is | Why I made it | Size | Who can see it |
+|---|---|---|---:|---|
+| [Kermany Retinal OCT (Mendeley v3)](https://www.kaggle.com/datasets/zyanislam/kermany-retinal-oct-v3) | The OCT part of Mendeley v3, unchanged | The popular Kaggle copy is the older v2 ([finding 1](#the-data-and-how-to-test-fairly)) | 7.2 GB | Private for now |
+| [Kermany Retinal OCT v3, 256x256](https://www.kaggle.com/datasets/zyanislam/kermany-retinal-oct-v3-256) | The same 109,309 scans in the same folders with the same file names, each converted to grayscale and resized once to 256×256 (plain bilinear resize, no padding), saved as JPEG at quality 95 | Reading full-size files from Kaggle's disk capped training at about 100 images/s ([finding 6](#the-pipeline)). This copy reached 359–489 | 2.6 GB | Public |
+
+**Every training run and every heatmap used the 256×256 copy.** Keeping the file names means the saved patient split works on both copies. The resize has no padding because padding would leave black bars on every scan except the all-DME 512×512 ones, which would give the model a shortcut. The cost is that wide scans are squashed ([limitations](#limitations)).
 
 <details>
 <summary><b>Sample scans: 20 random training scans per class</b></summary>

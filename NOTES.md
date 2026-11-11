@@ -13,6 +13,15 @@ Steps 1–10 done in 12 days, on the build guide's plan. At plan pace, the finis
 One entry a day: what I tried, what broke, what I learned. Newest first.
 
 <details open>
+<summary><b>Thu 12 Nov 2026</b></summary>
+
+- Read the reordered README. Three gaps: it didn't mention the 256×256 Kaggle copy that all training used, the limitations had no real-world examples, and it didn't say why the work matters.
+- Claude added a "Why this matters" section, an example for each limitation (marked as illustrations, not tested), a new limitation for squashed wide scans, and a "My two Kaggle copies" table in the Data section.
+- Found while checking: the 256×256 copy is already public on Kaggle, but the v3 copy and all three notebooks are private. The 256×256 description links to the private v3 copy, so that link fails for other people.
+
+</details>
+
+<details>
 <summary><b>Tue 3 Nov 2026</b></summary>
 
 - Merged Step 10 (PR #7). Started Step 11 on `step11-writeup`.
