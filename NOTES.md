@@ -13,6 +13,34 @@ Steps 1–10 done in 12 days, on the build guide's plan. At plan pace, the finis
 One entry a day: what I tried, what broke, what I learned. Newest first.
 
 <details open>
+<summary><b>Fri 13 Nov 2026</b></summary>
+
+- Went through the Step 11 task page: checked I can explain the first screen, and kept Claude's drafts of "What I learned" and the Step 10 sentences as written.
+- Cloned the branch from GitHub into an empty folder: the README's commands ran as written (T = 1.25, 13 of 19 mistakes caught). Ticked the guide's fresh-clone box.
+- Merged Step 11 (PR #8). Still open: a friend reading the README, the CV and email line, and the Kaggle visibility decisions.
+
+</details>
+
+<details>
+<summary><b>Thu 12 Nov 2026</b></summary>
+
+- Read the reordered README. Three gaps: it didn't mention the 256×256 Kaggle copy that all training used, the limitations had no real-world examples, and it didn't say why the work matters.
+- Claude added a "Why this matters" section, an example for each limitation (marked as illustrations, not tested), a new limitation for squashed wide scans, and a "My two Kaggle copies" table in the Data section.
+- Found while checking: the 256×256 copy is already public on Kaggle, but the v3 copy and all three notebooks are private. The 256×256 description links to the private v3 copy, so that link fails for other people.
+
+</details>
+
+<details>
+<summary><b>Tue 3 Nov 2026</b></summary>
+
+- Merged Step 10 (PR #7). Started Step 11 on `step11-writeup`.
+- Claude reordered the README to the guide's order and drafted "What I learned" from these notes, for me to reword. The first screen now has the result and one new figure with the two test panels.
+- Tested a clean copy of the repo's files in a new environment: Steps 6, 7, 8 and 10 reproduce every number in `results/` that was compared. It needed two fixes: a `requirements.txt` that includes `tqdm`, and `logits/`, the saved outputs of all five models (1.9 MB), because `runs/` isn't committed.
+- Still to do: a real clone from GitHub, a friend following the README, CV and email line, and making the Kaggle dataset and notebook public.
+
+</details>
+
+<details>
 <summary><b>Mon 2 Nov 2026</b></summary>
 
 - Merged Step 7 (PR #4). Started Step 8 on `step8-selective` and read its concepts page.
@@ -538,7 +566,7 @@ Patient-level 95% range for team + T minus seed 42 + T:
 
 **Decisions (Claude's picks, which I accepted):** the single model + temperature stays the main result, with the team as the comparison. The README states the seed spread. I'll look at the 7 shared mistakes as a look only, with no claim about the labels; that look isn't done yet.
 
-**What the table shows (drafted by Claude, for me to reword):** On validation, a team of five gives small but clear gains in accuracy, NLL and AURC over one temperature-scaled model, while on test all the ranges include no change. All 7 confident mistakes across the two methods are made by all five models, so the team doesn't justify five times the training here, and one temperature number stays the headline method.
+**What the table shows (drafted by Claude; I kept it as written):** On validation, a team of five gives small but clear gains in accuracy, NLL and AURC over one temperature-scaled model, while on test all the ranges include no change. All 7 confident mistakes across the two methods are made by all five models, so the team doesn't justify five times the training here, and one temperature number stays the headline method.
 
 **Not yet known:** why all five agree on these scans. Untested ideas are label errors, or something shared by every model such as the data or training settings. 
 
@@ -549,6 +577,34 @@ Patient-level 95% range for team + T minus seed 42 + T:
 `src/ensemble.py` writes `results/step10_*.csv` and `figures/step10/risk_coverage.png`.
 
 ![Risk-coverage: temperature against team plus temperature](figures/step10/risk_coverage.png)
+
+</details>
+
+<details>
+<summary><strong>Step 11 · Write-up</strong></summary>
+
+The README now follows the guide's order: result and figures, results table, method, Grad-CAM, limitations, commands, what I learned. Step-by-step detail moved lower and is collapsed.
+
+### Decisions (Claude's, for me to check)
+
+- **Headline figure:** one new figure with both panels on test (`headline_figure` in `src/selective.py`), because the Step 7 and Step 8 figures have different shapes and can't sit side by side.
+- **Saved outputs committed:** `logits/` holds each model's validation and test logits, so anyone can rerun Steps 6, 7, 8 and 10 with no data or GPU. Checkpoints stay out (45 MB each).
+- **Guide wording changed:** the guide says "scans from one hospital system". A quick search couldn't confirm where the scans were collected, so the README says only "one public dataset".
+
+### Fresh-copy test
+
+Clean copy of the tracked files, new Python 3.12 environment, `pip install -r requirements.txt`.
+
+| Check | Result |
+|---|---|
+| Steps 6, 7, 8 and 10 from `logits/` | 11 seconds; numeric columns in all 11 tables match `results/` exactly |
+| Step 2 index on the local 256×256 scans | 109,309 scans |
+| Step 3 split | same paths and sides as `splits/oct_split_fold0.csv` |
+| Step 4 loader | test batch `(64, 3, 224, 224)` |
+| Step 9 with the local `best.pt` | 18 scans, all among those in `results/step9_scans_shown.csv` |
+| Step 5 full training | not rerun (needs a GPU); the clean Kaggle rerun on Tue 27 Oct gave bit-identical logits |
+
+**Found by the test:** `tqdm` was missing from the requirements, and nothing could run from a clone because `runs/` isn't committed. Both fixed.
 
 </details>
 
