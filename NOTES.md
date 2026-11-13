@@ -13,6 +13,15 @@ Steps 1–10 done in 12 days, on the build guide's plan. At plan pace, the finis
 One entry a day: what I tried, what broke, what I learned. Newest first.
 
 <details open>
+<summary><b>Fri 13 Nov 2026</b></summary>
+
+- Went through the Step 11 task page: checked I can explain the first screen, and kept Claude's drafts of "What I learned" and the Step 10 sentences as written.
+- Cloned the branch from GitHub into an empty folder: the README's commands ran as written (T = 1.25, 13 of 19 mistakes caught). Ticked the guide's fresh-clone box.
+- Merged Step 11 (PR #8). Still open: a friend reading the README, the CV and email line, and the Kaggle visibility decisions.
+
+</details>
+
+<details>
 <summary><b>Thu 12 Nov 2026</b></summary>
 
 - Read the reordered README. Three gaps: it didn't mention the 256×256 Kaggle copy that all training used, the limitations had no real-world examples, and it didn't say why the work matters.
@@ -557,7 +566,7 @@ Patient-level 95% range for team + T minus seed 42 + T:
 
 **Decisions (Claude's picks, which I accepted):** the single model + temperature stays the main result, with the team as the comparison. The README states the seed spread. I'll look at the 7 shared mistakes as a look only, with no claim about the labels; that look isn't done yet.
 
-**What the table shows (drafted by Claude, for me to reword):** On validation, a team of five gives small but clear gains in accuracy, NLL and AURC over one temperature-scaled model, while on test all the ranges include no change. All 7 confident mistakes across the two methods are made by all five models, so the team doesn't justify five times the training here, and one temperature number stays the headline method.
+**What the table shows (drafted by Claude; I kept it as written):** On validation, a team of five gives small but clear gains in accuracy, NLL and AURC over one temperature-scaled model, while on test all the ranges include no change. All 7 confident mistakes across the two methods are made by all five models, so the team doesn't justify five times the training here, and one temperature number stays the headline method.
 
 **Not yet known:** why all five agree on these scans. Untested ideas are label errors, or something shared by every model such as the data or training settings. 
 

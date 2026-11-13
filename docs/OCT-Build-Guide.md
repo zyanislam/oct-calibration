@@ -537,7 +537,7 @@ A professor will spend about two minutes on your repo. If the point isn't clear 
 
 - [x] **Turn `NOTES.md` into a "What I learned" section**, including what broke and how you fixed it.
 
-- [ ] **Put all figures in `figures/`** and check the repo runs from a fresh clone.
+- [x] **Put all figures in `figures/`** and check the repo runs from a fresh clone.
 
 - [ ] **Ask a friend to follow your README without help**, and fix whatever confuses them.
 
